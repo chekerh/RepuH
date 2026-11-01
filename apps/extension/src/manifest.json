@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "RepuH Companion",
+  "version": "0.1.0",
+  "description": "Observes an explicit allowlist of professional documentation domains for RepuH. No keystrokes, no clipboard, no screenshots.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://developer.mozilla.org/*",
+    "https://docs.github.com/*",
+    "https://github.com/*",
+    "https://nextjs.org/*",
+    "https://react.dev/*",
+    "https://www.typescriptlang.org/*",
+    "https://nodejs.org/*",
+    "https://www.postgresql.org/*",
+    "https://supabase.com/*",
+    "https://threejs.org/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "RepuH Companion"
+  },
+  "externally_connectable": {
+    "matches": ["http://localhost:3000/*", "https://repuh.app/*"]
+  }
+}
