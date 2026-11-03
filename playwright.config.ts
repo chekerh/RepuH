@@ -10,9 +10,12 @@ export default defineConfig({
   // registration tests hit the limiter and fail with "Too many attempts".
   workers: 1,
   reporter: 'list',
+  // retain-on-failure: keep a trace artifact for every failing (including
+  // flaky) run even with 0 retries, so a rerendering/failing step can be
+  // replayed later without paying for always-on tracing.
   use: {
     baseURL: 'http://localhost:3100',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     viewport: { width: 1440, height: 900 },
   },
   projects: [
