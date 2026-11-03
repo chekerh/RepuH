@@ -24,3 +24,8 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# generated + test artifacts
+graphify-out/
+test-results/
+playwright-report/

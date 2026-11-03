@@ -33,6 +33,8 @@ const MOBILE = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/fingerprint", label: "Fingerprint", icon: Fingerprint },
   { href: "/activity", label: "Activity", icon: Activity },
+  { href: "/evidence", label: "Evidence", icon: Waypoints },
+  { href: "/certificates", label: "Certificates", icon: Award },
   { href: "/leaderboards", label: "Rankings", icon: Trophy },
   { href: "/profile", label: "Profile", icon: User },
 ];
@@ -237,7 +239,9 @@ export function AppShell({
         aria-label="Mobile"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
-        <ul className="grid grid-cols-5">
+        {/* Seven destinations even on a 360px screen: the fixed width of the
+            viewport is what keeps a scroll bar from appearing. */}
+        <ul className="grid grid-cols-7">
           {MOBILE.map((item) => {
             const Icon = item.icon;
             const href = item.href === "/profile" ? profileHref : item.href;
@@ -248,7 +252,7 @@ export function AppShell({
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex min-h-[3.5rem] flex-col items-center justify-center gap-1 text-[0.625rem]",
+                    "flex min-h-[3.5rem] flex-col items-center justify-center gap-1 px-0.5 text-[0.5625rem]",
                     active ? "text-primary" : "text-muted",
                   )}
                 >

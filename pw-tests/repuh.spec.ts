@@ -177,15 +177,22 @@ test.describe('RepuH — MVP UX/UI and interaction suite', () => {
     await register(page, { headline: 'QA engineer' });
     await page.waitForURL(/\/dashboard/, { timeout: 12_000 });
 
-    // Sidebar links exist only at the desktop breakpoint. On narrow viewports
-    // an item matching the name may be visible but not actionable (bottom-nav
-    // container), so drive the route directly there — the journey under test
-    // is the pages.
+    // Desktop uses the sidebar links. On narrow viewports the mobile bottom
+    // nav carries the same seven destinations, and driving it keeps the test
+    // honest about the nav actually working — including on the very first
+    // hop, which in dev mode may still be racing hydration/styles in the
+    // product code rather than in the test.
     const open = async (name: RegExp, href: string) => {
-      const isNarrow = page.viewportSize()?.width != null && page.viewportSize()!.width < 768;
-      const link = page.getByRole('link', { name }).first();
-      if (!isNarrow && (await link.isVisible({ timeout: 2_000 }).catch(() => false))) await link.click();
-      else await page.goto(href);
+      if ((page.viewportSize()?.width ?? 1440) < 768) {
+        const item = page.getByRole('navigation', { name: /mobile/i }).getByRole('link', { name });
+        await expect(item).toBeVisible({ timeout: 10_000 });
+        await item.click({ timeout: 10_000 });
+      } else {
+        const link = page.getByRole('link', { name }).first();
+        if (await link.isVisible({ timeout: 2_000 }).catch(() => false)) await link.click();
+        else await page.goto(href);
+      }
+      await expect(page).toHaveURL(new RegExp(`${href}$`), { timeout: 15_000 });
       await expect(page.locator('body')).toBeVisible({ timeout: 8_000 });
     };
 
@@ -241,7 +248,10 @@ test.describe('RepuH — MVP UX/UI and interaction suite', () => {
     await register(page, { headline: 'Mobile' });
     await page.waitForURL(/\/dashboard/, { timeout: 12_000 });
 
-    await expect(page.getByRole('link', { name: /home/i }).first()).toBeVisible({ timeout: 6_000 });
+    const mobileNav = page.getByRole('navigation', { name: /mobile/i }).first();
+    await expect(mobileNav.getByRole('link', { name: /home/i })).toBeVisible({ timeout: 6_000 });
+    await expect(mobileNav.getByRole('link', { name: /evidence/i })).toBeVisible({ timeout: 6_000 });
+    await expect(mobileNav.getByRole('link', { name: /certificates/i })).toBeVisible({ timeout: 6_000 });
 
     const overflow = await page.evaluate(() => {
       const main = document.querySelector('main');
