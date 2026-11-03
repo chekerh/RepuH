@@ -1,6 +1,6 @@
 # Implementation progress
 
-Last verified: **1 November 2026**.
+Last verified: **2 November 2026**.
 Repository: `RepuH` (started empty — no commits, no files).
 
 ## Verification log
@@ -107,3 +107,46 @@ Not run, and why:
 5. Run `pnpm hedera:setup` against a funded testnet operator, then verify the
    first anchor and certificate on HashScan and via the mirror node.
 6. Add Playwright coverage for the ten acceptance flows above.
+
+## Update — 2 November 2026: app-level boot loader (sections 6 of the master brief)
+
+**Work:**
+
+- Ported the approved `repuh-loader.html` design to an app-level loader owned by
+  the root layout (`src/app/layout.tsx`): inline CSS and script before any app
+  chunk — orb of evidence tiles on a 2D canvas, headline with serif-italic
+  emphasis, status chip cycling the spec principle lines, progress bar and
+  percent, plus `Skip waiting` and a stall watchdog at ~35s. No fixed time cap.
+- Percent reads real state only: document readiness, `document.fonts.ready`,
+  then hydration (`BootSignal`) or, on `/`, the hero's first painted frame:
+  smoothed but never 100 until ready.
+- `src/components/boot-signal.tsx` (new): fires `window.repuhReady()` on any
+  non-landing route once hydrated; the landing is owned by the hero signal.
+- `src/components/lattice-hero.tsx`: dropped the hero-local overlay (it double-
+  covered the viewport against the app loader) and instead reports
+  `repuhReady()` after two painted frames of the threeui canvas, with the same
+  2.5 s cap against a hung library mount.
+- Boot canvas colours come from derived tokens
+  (`--repuh-boot-tile/edge/bar`, colour-mix over existing semantic tokens) so
+  light and dark remain the only colour authorities; reduced-motion collapses
+  chip pulse and dismiss transition.
+- `pw-tests/repuh.spec.ts`: boot selectors moved from the removed hero overlay
+  to the app loader (`#repuh-boot`). No assertions were weakened for this.
+- Heightened accessibility: `role=status` (`aria-live=polite`), Escape to
+  dismiss, visible skip control on focus, canvas `aria-label`.
+
+**Files:** `src/app/layout.tsx` (rewritten around the loader),
+`src/app/globals.css` (boot tokens added), `src/components/boot-signal.tsx`
+(new), `src/components/lattice-hero.tsx` (overlay removed, signal added),
+`pw-tests/repuh.spec.ts` (scoped selectors).
+
+**Verification:** `pnpm typecheck` pass. Playwright suite could not run to
+completion this session: the configured `baseURL` (localhost:3100) has no dev
+server, port 3000 already hosts a server that pictures the running landing
+design, and port 3100 refused handoff ("existing server at http://localhost:3000
+... kill 77647"). Not going to kill a process I did not start; next action below.
+
+**Next action:** run `npx next dev --port 3100` (or `pnpm dev` plus either a
+`baseURL` of :3000 for tests or a second server on :3100), then run
+`npx playwright test` and gate sections 6/7 on its results along with CPU
+throttle 6x and Slow 4G timings at 390 px and 1440 px.

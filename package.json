@@ -18,11 +18,13 @@
     "hedera:setup": "node --env-file-if-exists=.env.local --import tsx scripts/hedera-setup.ts"
   },
   "dependencies": {
+    "@designcodeio/threeui": "^1.2.0",
     "@hashgraph/sdk": "2.81.0",
     "@react-three/drei": "10.7.9",
     "@react-three/fiber": "9.8.2",
     "better-sqlite3": "13.0.3",
     "clsx": "2.1.1",
+    "framer-motion": "^14.9.0",
     "lucide-react": "1.66.0",
     "next": "16.4.3",
     "react": "19.3.1",

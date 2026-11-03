@@ -12,13 +12,15 @@ import {
   Sparkles,
   Waypoints,
 } from "lucide-react";
-import { OrbGallery } from "@/shaders/orb-gallery/OrbGallery";
-import "@/shaders/threeui.css";
+import { CapabilityLatticeHero, LatticeFallback } from "@/components/lattice-hero";
+import { Reveal, RevealItem } from "@/components/scroll-reveal";
+import { SiteHeader } from "@/components/site-header";
 import { ButtonLink } from "@/components/ui";
 import { currentUser } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { DEMO_PROFILES } from "@/lib/demo/generator";
-import { SKILLS } from "@/lib/ontology";
+import { CATEGORIES, SKILLS } from "@/lib/ontology";
+import { hederaOperatorReady } from "@/lib/hedera/config";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +79,16 @@ const FEATURES = [
 export default async function LandingPage() {
   const user = await currentUser();
   const db = getDb();
+  const hederaLive = hederaOperatorReady();
+
+  // The hero nodes are the ontology itself: what the platform models, grouped
+  // by category. No estimate or confidence is invented here — the landing does
+  // not have a user's evidence, so there is nothing to number.
+  const latticeNodes = SKILLS.map((skill) => ({
+    id: skill.id,
+    label: skill.name,
+    group: CATEGORIES.find((category) => category.id === skill.categoryId)?.name ?? skill.categoryId,
+  }));
   const publicProfiles = (
     db.prepare("SELECT COUNT(*) AS count FROM profiles WHERE visibility = 'public'").get() as {
       count: number;
@@ -88,12 +100,77 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-dvh">
+      <SiteHeader signedIn={Boolean(user?.profile.onboardingComplete)} />
 
       <main id="main">
         {/* ------------------------------------------------------------- hero */}
-        <section className="relative h-dvh min-h-[30rem]">
-          <h1 className="sr-only">RepuH — an engineering identity you can verify</h1>
-          <OrbGallery />
+        <section className="relative h-dvh min-h-[36rem] overflow-hidden bg-[#0b0f16] text-[#edf1f7]">
+          <CapabilityLatticeHero
+            nodes={latticeNodes}
+            caption="Drag to rotate · each grouping is a category of the published ontology"
+          />
+
+          {/* Bottom band: copy pinned to the canvas edge, never floating over
+              its centre. Content must stay pointer-transparent so the lattice
+              keeps its drag unless an interactive element is on top of it. */}
+          <div className="pointer-events-none relative inset-x-0 bottom-0 z-10">
+            <div
+              className="absolute inset-x-0 bottom-0 h-64"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(11,15,22,0) 0%, rgba(11,15,22,0.82) 78%, rgba(11,15,22,0.95) 100%)",
+              }}
+            />
+            <div className="pointer-events-auto relative mx-auto grid w-full max-w-[80rem] gap-6 px-4 pb-8 pt-28 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-14 lg:px-8">
+              <div>
+                <h1 className="display text-[clamp(2.6rem,6vw,4.6rem)] leading-none text-white">
+                  <span className="sr-only">RepuH. </span>
+                  Every number, traceable.
+                </h1>
+              </div>
+              <div>
+                <p className="label text-white/55">
+                  {SKILLS.length} capabilities · {CATEGORIES.length} categories · no platform tests
+                </p>
+                <p className="mt-3 max-w-[48ch] text-sm leading-relaxed text-white/75">
+                  RepuH reads attributable work — commits, reviews, documentation — and reports what
+                  that evidence supports, with confidence and limits attached. It never runs a quiz
+                  or issues a grade.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  {user ? (
+                    <ButtonLink href="/dashboard" size="md" variant="secondary">
+                      Open dashboard
+                    </ButtonLink>
+                  ) : (
+                    <ButtonLink
+                      href="/register"
+                      size="md"
+                      variant="secondary"
+                      className="border border-white/20 bg-white text-[#0b0f16] hover:bg-white/90"
+                    >
+                      Create your identity
+                    </ButtonLink>
+                  )}
+                  <ButtonLink
+                    href="/explore"
+                    size="md"
+                    variant="ghost"
+                    className="border border-white/20 text-white hover:bg-white/10"
+                  >
+                    Explore the network
+                  </ButtonLink>
+                </div>
+                <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+                  <li className="label text-white/55">Ed25519-signed certificates</li>
+                  <li className="label text-white/55">Merkle inclusion proofs</li>
+                  <li className="label text-white/55">
+                    Hedera timestamps{hederaLive ? "" : " · not configured here"}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </section>
 
         <div className="mx-auto w-full max-w-[80rem] px-4 sm:px-6 lg:px-8">
@@ -115,7 +192,7 @@ export default async function LandingPage() {
                 have seen exactly what it covers.
               </p>
             </div>
-            <ol className="grid gap-0 border-t border-border sm:grid-cols-3 sm:gap-6">
+            <Reveal stagger={0.09} className="grid gap-0 border-t border-border sm:grid-cols-3 sm:gap-6">
               {STEPS.map((step) => (
                 <li key={step.number} className="border-b border-border py-6 sm:border-b-0 sm:pt-6">
                   <span className="num text-xs text-muted">{step.number}</span>
@@ -123,7 +200,7 @@ export default async function LandingPage() {
                   <p className="mt-2 text-[0.8125rem] leading-relaxed text-muted">{step.body}</p>
                 </li>
               ))}
-            </ol>
+            </Reveal>
           </div>
         </section>
 
@@ -148,7 +225,8 @@ export default async function LandingPage() {
                 </Link>
               </div>
 
-              <dl className="grid gap-x-10 gap-y-0 sm:grid-cols-2">
+              <Reveal as="div" className="grid gap-x-10 gap-y-0 sm:grid-cols-2">
+              <dl className="contents">
                 {FEATURES.map((feature) => {
                   const Icon = feature.icon;
                   return (
@@ -158,12 +236,12 @@ export default async function LandingPage() {
                         {feature.title}
                       </dt>
                       <dd className="mt-2 text-[0.8125rem] leading-relaxed text-muted">
-                        {feature.body}
-                      </dd>
-                    </div>
-                  );
-                })}
+                        {feature.body}                  </dd>
+                </div>
+              );
+            })}
               </dl>
+              </Reveal>
             </div>
           </div>
         </section>
@@ -200,6 +278,7 @@ export default async function LandingPage() {
                 </div>
               </div>
 
+              <Reveal as="div">
               <ul className="space-y-0 border-t border-white/15">
                 {[
                   {
@@ -227,6 +306,7 @@ export default async function LandingPage() {
                   </li>
                 ))}
               </ul>
+              </Reveal>
             </div>
           </div>
         </section>

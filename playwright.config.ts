@@ -5,7 +5,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  //.Serialised on purpose: the app rate-limits register/login per client key
+  // (10/60s), and parallel workers all share one origin, so concurrent
+  // registration tests hit the limiter and fail with "Too many attempts".
+  workers: 1,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3100',
