@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const demo = integration?.status === "demo";
 
   return (
-    <AppShell user={user} demo={demo}>
+    <AppShell user={user} demo={demo} observing={Boolean(integration)}>
       {children}
     </AppShell>
   );

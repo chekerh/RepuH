@@ -47,10 +47,13 @@ function isActive(pathname: string, href: string) {
 export function AppShell({
   user,
   demo,
+  observing,
   children,
 }: {
   user: SessionUser;
   demo: boolean;
+  /** True only when a provider is actually connected; a new account has none. */
+  observing: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -188,11 +191,15 @@ export function AppShell({
               <span
                 className={cn(
                   "size-1.5 rounded-full",
-                  demo ? "bg-warning" : "bg-success",
+                  demo ? "bg-warning" : observing ? "bg-success" : "bg-muted",
                 )}
                 aria-hidden
               />
-              {demo ? "Development adapter — labelled demo data" : "Observation active"}
+              {demo
+                ? "Development adapter — labelled demo data"
+                : observing
+                  ? "Observation active"
+                  : "Not observing"}
             </span>
           </div>
           <div className="flex items-center gap-1.5">

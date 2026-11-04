@@ -15,7 +15,7 @@ const PASSWORD = 'qapassword-1';
 // Helpers
 // ---------------------------------------------------------------------------
 
-// The landing shows a fixed boot overlay while the hero lattice paints; every
+// The landing shows a fixed boot overlay while the hero globe paints; every
 // flow that starts on a fresh landing load must wait for it to fade out. A
 // no-op once the hero is ready.
 async function ensureBootFaded(page: Page) {
@@ -140,10 +140,10 @@ test.describe('RepuH — MVP UX/UI and interaction suite', () => {
     await expect(page.getByText(/certificate/i)).toBeVisible();
     await expect(page.getByText(/Hedera/i)).toBeVisible();
 
-    // After the boot overlay fades the hero effect is mounted. The threeui
-    // ConstellationField paints inside a sandboxed srcdoc iframe, so the
-    // observable element is the iframe — no canvas exists in the host document.
-    await expect(page.locator('.threeui-mount iframe').first()).toBeAttached({ timeout: 8_000 });
+    // After the boot overlay fades the hero effect is mounted. The landing
+    // hero is the orb gallery: a sandboxed srcdoc iframe, so the observable
+    // element is that iframe — no canvas exists in the host document.
+    await expect(page.locator('.orb-gallery iframe').first()).toBeAttached({ timeout: 8_000 });
     expect(errors).toEqual([]);
   });
 

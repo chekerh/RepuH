@@ -12,9 +12,9 @@ import {
   Sparkles,
   Waypoints,
 } from "lucide-react";
-import { CapabilityLatticeHero, LatticeFallback } from "@/components/lattice-hero";
 import { Reveal, RevealItem } from "@/components/scroll-reveal";
 import { SiteHeader } from "@/components/site-header";
+import { OrbGallery } from "@/shaders/orb-gallery/OrbGallery";
 import { ButtonLink } from "@/components/ui";
 import { currentUser } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
@@ -81,14 +81,6 @@ export default async function LandingPage() {
   const db = getDb();
   const hederaLive = hederaOperatorReady();
 
-  // The hero nodes are the ontology itself: what the platform models, grouped
-  // by category. No estimate or confidence is invented here — the landing does
-  // not have a user's evidence, so there is nothing to number.
-  const latticeNodes = SKILLS.map((skill) => ({
-    id: skill.id,
-    label: skill.name,
-    group: CATEGORIES.find((category) => category.id === skill.categoryId)?.name ?? skill.categoryId,
-  }));
   const publicProfiles = (
     db.prepare("SELECT COUNT(*) AS count FROM profiles WHERE visibility = 'public'").get() as {
       count: number;
@@ -104,24 +96,27 @@ export default async function LandingPage() {
 
       <main id="main">
         {/* ------------------------------------------------------------- hero */}
-        <section className="relative h-dvh min-h-[36rem] overflow-hidden bg-[#0b0f16] text-[#edf1f7]">
-          <CapabilityLatticeHero
-            nodes={latticeNodes}
-            caption="Drag to rotate · each grouping is a category of the published ontology"
-          />
+        {/* The sticky site header owns 4rem of the viewport, so the hero must
+            subtract it. h-dvh alone pushes the pinned copy below the fold. */}
+        <section className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#0b0f16] text-[#edf1f7] lg:block lg:h-[calc(100dvh-4rem)] lg:min-h-[36rem]">
+          {/* Mobile stacks the globe above the copy; the overlay only starts at
+              lg, where the copy is short enough to sit on the canvas edge. */}
+          <div className="relative h-[38dvh] min-h-[15rem] w-full shrink-0 lg:absolute lg:inset-0 lg:h-full">
+            <OrbGallery />
+          </div>
 
           {/* Bottom band: copy pinned to the canvas edge, never floating over
               its centre. Content must stay pointer-transparent so the lattice
               keeps its drag unless an interactive element is on top of it. */}
-          <div className="pointer-events-none relative inset-x-0 bottom-0 z-10">
+          <div className="pointer-events-none relative z-10 mt-auto lg:absolute lg:inset-x-0 lg:bottom-0">
             <div
-              className="absolute inset-x-0 bottom-0 h-64"
+              className="absolute inset-x-0 bottom-0 hidden h-80 lg:block"
               style={{
                 background:
-                  "linear-gradient(180deg, rgba(11,15,22,0) 0%, rgba(11,15,22,0.82) 78%, rgba(11,15,22,0.95) 100%)",
+                  "linear-gradient(180deg, rgba(11,15,22,0) 0%, rgba(11,15,22,0.72) 46%, rgba(11,15,22,0.94) 78%, #0b0f16 100%)",
               }}
             />
-            <div className="pointer-events-auto relative mx-auto grid w-full max-w-[80rem] gap-6 px-4 pb-8 pt-28 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-14 lg:px-8">
+            <div className="pointer-events-auto relative mx-auto grid w-full max-w-[80rem] gap-6 px-4 pb-8 pt-6 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-14 lg:px-8 lg:pt-28">
               <div>
                 <h1 className="display text-[clamp(2.6rem,6vw,4.6rem)] leading-none text-white">
                   <span className="sr-only">RepuH. </span>

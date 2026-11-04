@@ -10,7 +10,11 @@ export async function Chrome({ children }: { children: React.ReactNode }) {
   if (user?.profile.onboardingComplete) {
     const integration = getIntegration(user.id, "github");
     return (
-      <AppShell user={user} demo={integration?.status === "demo"}>
+      <AppShell
+        user={user}
+        demo={integration?.status === "demo"}
+        observing={Boolean(integration)}
+      >
         {children}
       </AppShell>
     );

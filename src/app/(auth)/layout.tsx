@@ -1,16 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Wordmark } from "@/components/brand";
-import { CapabilityLattice } from "@/components/lattice";
-
-const NODES = Array.from({ length: 22 }).map((_, index) => ({
-  id: `a-${index}`,
-  label: "",
-  group: ["programming", "backend", "frontend", "architecture", "devops", "collaboration"][index % 6]!,
-  weight: 0.25 + ((index * 7) % 10) / 16,
-  confidence: 0.3 + ((index * 5) % 8) / 12,
-  score: null,
-}));
+import { PhosphorShader } from "@/shaders/phosphor-30/PhosphorShader";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -44,7 +35,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           <div className="relative h-[24rem]">
-            <CapabilityLattice nodes={NODES} interactive={false} caption="Illustrative" />
+            <PhosphorShader />
           </div>
 
           <div>

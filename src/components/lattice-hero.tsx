@@ -84,9 +84,19 @@ export function CapabilityLatticeHero({
   }, []);
 
   const mounted = hostVisible && documentVisible;
+  // The reduced-motion fallback paints synchronously, so readiness is derived
+  // from state instead of set inside the effect (which would cascade renders).
+  const isReady = ready || (mounted && reduce);
 
   useEffect(() => {
-    if (reduce || !mounted) return undefined;
+    if (!mounted) return undefined;
+    // The 2D fallback is painted synchronously, so there is no first frame to
+    // wait for. Reporting readiness here keeps the boot loader from holding the
+    // landing for its entire watchdog window on reduced-motion setups.
+    if (reduce) {
+      if (typeof window.repuhReady === "function") window.repuhReady();
+      return undefined;
+    }
     let done = false;
     let rafId = 0;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -122,7 +132,7 @@ export function CapabilityLatticeHero({
       className={`threeui-mount threeui-background${className ? ` ${className}` : ""}`}
       role="group"
       aria-label="Capability lattice: an interactive view of what RepuH models"
-      data-state={!mounted ? "paused" : ready ? "ready" : "loading"}
+      data-state={!mounted ? "paused" : isReady ? "ready" : "loading"}
       style={{
         position: "absolute",
         inset: 0,
@@ -159,7 +169,7 @@ export function CapabilityLatticeHero({
       {caption ? (
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between px-3 pb-2"
-          style={{ opacity: ready ? 1 : 0, transition: "opacity 300ms ease" }}
+          style={{ opacity: isReady ? 1 : 0, transition: "opacity 300ms ease" }}
         >
           <span className="label text-white/45">{caption}</span>
           <span className="label text-white/35">

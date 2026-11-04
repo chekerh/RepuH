@@ -87,6 +87,13 @@ const bootCss = `
   font-family: var(--font-sans);
   transition: opacity 500ms ease, visibility 500ms ease;
   padding: max(0px, env(safe-area-inset-top)) 0 max(0px, env(safe-area-inset-bottom));
+  /* Last-resort guarantee, independent of JS: even if the loader script never
+     runs (blocked, cached-failure, fatal early error) the overlay cannot hold
+     the page forever. The JS dismissal happens far earlier in normal use. */
+  animation: repuh-boot-failsafe 1ms linear 10s forwards;
+}
+@keyframes repuh-boot-failsafe {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
 }
 #repuh-boot[data-dismissed="true"] {
   opacity: 0;
@@ -347,6 +354,19 @@ const bootScript = `
   var skip = boot.querySelector(".boot-stall");
   skip.addEventListener("click", dismiss);
 
+  // Always leave a visible way out, and never hold the site hostage longer
+  // than one demo pause. Neither path claims the app reported readiness —
+  // they simply reveal whatever has rendered so a slow or broken chunk cannot
+  // leave the landing as a permanent loading screen.
+  setTimeout(function () {
+    if (!state.dismissed) skip.classList.add("enter");
+  }, 2500);
+  setTimeout(function () {
+    if (state.dismissed || state.ready) return;
+    chip.textContent = "Still loading — showing what is ready.";
+    dismiss();
+  }, 7000);
+
   (function loop() {
     var target = state.ready ? 1 : staged > 0 ? Math.min(0.92, staged) : 0;
     staged = Math.min(0.92, staged);
@@ -408,6 +428,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
+
+        {/* Without JS the loader cannot report progress or dismiss itself, so
+            it is removed up front rather than shown as a permanent screen. */}
+        <noscript>
+          <style dangerouslySetInnerHTML={{ __html: "#repuh-boot{display:none}" }} />
+        </noscript>
 
         {/* Boot loader: ported from the approved repuh-loader.html design.
             Raw HTML (see bootMarkup) so the loader script owns its DOM. */}

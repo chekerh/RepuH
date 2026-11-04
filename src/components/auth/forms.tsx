@@ -26,10 +26,19 @@ function extractFieldErrors(payload: unknown): Record<string, string> {
   return out;
 }
 
-export function LoginForm() {
+export interface DemoAccount {
+  email: string;
+  name: string;
+  persona: string;
+  password: string;
+}
+
+export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,7 +78,16 @@ export function LoginForm() {
       </div>
 
       <Field label="Email" htmlFor="email">
-        <Input id="email" name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          placeholder="you@example.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
       </Field>
 
       <Field label="Password" htmlFor="password">
@@ -80,6 +98,8 @@ export function LoginForm() {
           autoComplete="current-password"
           required
           placeholder="••••••••••"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
         />
       </Field>
 
@@ -103,6 +123,49 @@ export function LoginForm() {
           Create an account
         </Link>
       </div>
+
+      {demoAccounts.length > 0 ? (
+        <section aria-labelledby="demo-accounts" className="border-t border-border pt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 id="demo-accounts" className="label">
+              Demo accounts
+            </h2>
+            <span className="text-[0.625rem] font-semibold tracking-wide text-warning">
+              LABELLED DEMO DATA
+            </span>
+          </div>
+          <p className="mt-1 text-[0.6875rem] leading-relaxed text-muted">
+            Seeded by the development adapter. Pick one to fill the form; every record in these
+            accounts carries a DEMO badge.
+          </p>
+          <ul className="mt-2 divide-y divide-border border-y border-border">
+            {demoAccounts.map((account) => (
+              <li key={account.email}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail(account.email);
+                    setPassword(account.password);
+                    setError(null);
+                  }}
+                  className="flex w-full items-center justify-between gap-3 py-2 text-left transition-colors hover:bg-surface-muted"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-medium">{account.name}</span>
+                    <span className="block truncate text-[0.6875rem] text-muted">
+                      {account.persona} · {account.email}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[0.6875rem] font-medium text-primary">Use</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[0.6875rem] text-muted">
+            Password for all accounts: <code className="font-mono text-foreground">{demoAccounts[0]?.password}</code>
+          </p>
+        </section>
+      ) : null}
     </form>
   );
 }

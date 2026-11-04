@@ -16,6 +16,10 @@ export interface DemoProject {
   topics?: string[];
 }
 
+// Shared by the seeder and the sign-in screen so the demo is reproducible
+// without exposing anything beyond labelled development data.
+export const DEMO_PASSWORD = "repuh-demo-password";
+
 export interface DemoProfileSpec {
   key: string;
   email: string;
