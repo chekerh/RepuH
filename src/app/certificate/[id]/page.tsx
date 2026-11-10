@@ -117,6 +117,7 @@ export default async function CertificatePage({
                 ? "Anchor failed"
                 : "Not anchored"}
           </Badge>
+          {certificate.status === "revoked" ? <Badge tone="danger">Revoked</Badge> : null}
         </div>
 
         <h1 className="display mt-4 text-[clamp(2.4rem,6vw,4rem)]">{payload.claim.skillName}</h1>

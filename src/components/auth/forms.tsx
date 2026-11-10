@@ -70,10 +70,10 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] 
 
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
-      <div>
+      <div className="rise">
         <h1 className="display text-4xl">Sign in</h1>
         <p className="mt-2 text-sm text-muted">
-          Your fingerprint, evidence and privacy controls are waiting.
+          Your map, evidence and consent records are where you left them.
         </p>
       </div>
 
@@ -135,8 +135,8 @@ export function LoginForm({ demoAccounts = [] }: { demoAccounts?: DemoAccount[] 
             </span>
           </div>
           <p className="mt-1 text-[0.6875rem] leading-relaxed text-muted">
-            Seeded by the development adapter. Pick one to fill the form; every record in these
-            accounts carries a DEMO badge.
+            These accounts come from the development adapter. Picking one fills the form; every
+            record inside carries a DEMO badge.
           </p>
           <ul className="mt-2 divide-y divide-border border-y border-border">
             {demoAccounts.map((account) => (
@@ -213,10 +213,10 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
-      <div>
+      <div className="rise">
         <h1 className="display text-4xl">Create your identity</h1>
         <p className="mt-2 text-sm text-muted">
-          No test, no challenge, no score to grind. The account starts empty and honest.
+          Your account starts empty. It fills only with work you have published.
         </p>
       </div>
 
@@ -290,8 +290,8 @@ export function RegisterForm() {
         <Link href="/privacy" className="underline underline-offset-2">
           privacy model
         </Link>
-        . Email verification has no mail provider configured in this MVP; that is stated in the
-        documentation rather than simulated.
+        . Email verification is not configured in this MVP. The documentation says so instead of
+        pretending mail was sent.
       </p>
 
       <p className="text-xs text-muted">
@@ -339,10 +339,11 @@ export function RecoveryForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
-      <div>
+      <div className="rise">
         <h1 className="display text-4xl">Recover access</h1>
         <p className="mt-2 text-sm text-muted">
-          Enter the address on the account. The response is the same whether or not it exists.
+          Enter the address on the account. The answer is the same either way, so this form cannot
+          be used to check who has an account.
         </p>
       </div>
 

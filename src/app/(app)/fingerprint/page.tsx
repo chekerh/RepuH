@@ -4,6 +4,7 @@ import { ArrowUpRight, Eye, EyeOff, Fingerprint as FingerprintIcon } from "lucid
 import { PageHeader } from "@/components/page-header";
 import { Badge, ButtonLink } from "@/components/ui";
 import { FingerprintExplorer, type SkillView } from "@/components/fingerprint/explorer";
+import { RoleCoverageSummary } from "@/components/roles/summary";
 import { requireOnboarded } from "@/lib/auth/session";
 import { computeFingerprint } from "@/lib/services/ingest";
 import { CATEGORIES, CATEGORY_BY_ID, SKILLS, SKILLS_BY_ID } from "@/lib/ontology";
@@ -113,6 +114,8 @@ export default async function FingerprintPage({
           <Badge tone="neutral">algorithm {fingerprint.algorithmVersion}</Badge>
         </div>
       ) : null}
+
+      <RoleCoverageSummary />
 
       <FingerprintExplorer
         skills={skills}

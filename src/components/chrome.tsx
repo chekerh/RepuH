@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { SiteHeader } from "@/components/site-header";
+import { isAdminEmail } from "@/lib/admin/auth";
 import { currentUser } from "@/lib/auth/session";
 import { getIntegration } from "@/lib/db/queries";
 
@@ -14,6 +15,7 @@ export async function Chrome({ children }: { children: React.ReactNode }) {
         user={user}
         demo={integration?.status === "demo"}
         observing={Boolean(integration)}
+        admin={isAdminEmail(user.email)}
       >
         {children}
       </AppShell>
@@ -39,16 +41,16 @@ export function PublicFooter() {
           RepuH · evidence-backed professional identity · MVP
         </p>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
-          <Link href="/about" className="hover:text-foreground">About</Link>
-          <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
-          <Link href="/terms" className="hover:text-foreground">Terms</Link>
-          <Link href="/docs" className="hover:text-foreground">Documentation</Link>
-          <Link href="/contact" className="hover:text-foreground">Contact</Link>
+          <Link href="/about" className="transition-colors hover:text-foreground">About</Link>
+          <Link href="/privacy" className="transition-colors hover:text-foreground">Privacy</Link>
+          <Link href="/terms" className="transition-colors hover:text-foreground">Terms</Link>
+          <Link href="/docs" className="transition-colors hover:text-foreground">Documentation</Link>
+          <Link href="/contact" className="transition-colors hover:text-foreground">Contact</Link>
           <a
             href="https://github.com/chekerh/RepuH"
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex items-center gap-1 hover:text-foreground"
+            className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
           >
             GitHub <ArrowUpRight size={11} />
           </a>

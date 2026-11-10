@@ -5,8 +5,8 @@ import { PhosphorShader } from "@/shaders/phosphor-30/PhosphorShader";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1fr_0.9fr]">
-      <div className="flex min-h-dvh flex-col px-5 py-6 sm:px-8">
+    <div className="grid min-h-dvh min-w-0 lg:grid-cols-[1fr_0.9fr]">
+      <div className="flex min-h-dvh min-w-0 flex-col px-5 py-6 sm:px-8">
         <div className="flex items-center justify-between">
           <Wordmark />
           <Link
@@ -17,13 +17,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </Link>
         </div>
 
-        <main id="main" className="flex flex-1 items-center justify-center py-10">
-          <div className="w-full max-w-[25rem]">{children}</div>
+        <main id="main" className="flex min-w-0 flex-1 items-center justify-center py-10">
+          <div className="rise w-full min-w-0 max-w-[25rem]">{children}</div>
         </main>
 
         <p className="text-[0.6875rem] leading-relaxed text-muted">
-          RepuH never runs platform-administered tests. If an interface asks you to prove a skill in
-          a browser, it is not this product.
+          RepuH does not run tests. If a page asks you to prove a skill in a browser, it is not this
+          product.
         </p>
       </div>
 
@@ -43,8 +43,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               A number without its evidence is just a claim.
             </p>
             <p className="mt-4 max-w-[38ch] text-[0.8125rem] leading-relaxed text-white/45">
-              Every estimate in RepuH carries its inputs, its confidence and its limitations. Where
-              evidence is insufficient, the product says so.
+              Every estimate carries its inputs, its confidence and its limits. Where the evidence
+              is thin, the interface says so instead of guessing.
             </p>
             <a
               href="https://github.com/chekerh/RepuH"

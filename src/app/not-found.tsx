@@ -10,8 +10,8 @@ export default function NotFound() {
         <p className="num text-xs text-muted">404</p>
         <h1 className="display mt-3 text-4xl">That address does not resolve.</h1>
         <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-muted">
-          The page may have moved, the profile may be private, or the address may never have existed.
-          Nothing is fabricated to fill the gap.
+          The page may have moved, the profile may be private, or the address may never have
+          existed.
         </p>
         <div className="mt-6 flex gap-4 text-sm">
           <Link href="/" className="font-medium text-primary hover:underline">
