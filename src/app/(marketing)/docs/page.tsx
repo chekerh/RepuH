@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function DocsPage() {
   return (
-    <div className="grid gap-10 lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <aside className="lg:sticky lg:top-24 lg:self-start">
+    <div className="grid min-w-0 gap-10 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
         <p className="label">Implementation</p>
         <nav aria-label="Documentation sections" className="mt-3 space-y-1.5 text-[0.8125rem]">
           {[
@@ -34,7 +34,7 @@ export default function DocsPage() {
         </p>
       </aside>
 
-      <article className="doc">
+      <article className="doc min-w-0">
         <h1 className="display text-[clamp(2.4rem,5vw,3.4rem)]">
           How this implementation works, and where it stops.
         </h1>
@@ -132,8 +132,8 @@ export default function DocsPage() {
           <code>audit_logs</code>.
         </p>
         <ul>
-          <li><code>activity_events</code> is unique on <code>(user_id, source, external_id)</code> — repeated syncs cannot duplicate a contribution.</li>
-          <li><code>evidence</code> is unique on <code>event_id</code> — one classified record per event.</li>
+          <li><code>activity_events</code> is unique on <code>(user_id, source, external_id)</code>, so repeated syncs cannot duplicate a contribution.</li>
+          <li><code>evidence</code> is unique on <code>event_id</code>. One classified record per event.</li>
           <li><code>skill_snapshots</code> is append-only, so historical evolution is reconstructable.</li>
           <li><code>consent_records</code> is append-only; revocation is a new row, never an overwrite.</li>
         </ul>
@@ -225,12 +225,14 @@ export default function DocsPage() {
         </p>
         <p>
           Commitments are leaf-hashed and paired upward to a Merkle root. Inclusion proofs are stored
-          implicitly: a proof is regenerated from the batch commitments on verification. When
-          <code>HEDERA_OPERATOR_ID</code>, <code>HEDERA_OPERATOR_KEY</code> and{" "}
-          <code>HEDERA_TOPIC_ID</code> are set, the root is submitted to Hedera Consensus Service and
-          the batch is marked <code>confirmed</code> only after a receipt returns a topic sequence
-          number. Without them the local adapter records a deterministic reference and every record is
-          labelled <code>local</code>.
+          implicitly: a proof is regenerated from the batch commitments on verification. When{" "}
+          <code>HEDERA_CONTRACT_ID</code> is set, the root is submitted to the{" "}
+          <code>EvidenceAnchor</code> smart contract on Hedera, and the batch is marked{" "}
+          <code>confirmed</code> only after the call succeeds and <code>getRoot</code> returns the
+          submitted root. Without a contract, a configured {" "}
+          <code>HEDERA_TOPIC_ID</code> anchors the root through the consensus service instead. With
+          neither, the local adapter records a deterministic reference and every record is labelled{" "}
+          <code>local</code>.
         </p>
         <p>
           A certificate is a canonical JSON claim signed with Ed25519: one capability, its estimate,
