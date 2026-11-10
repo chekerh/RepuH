@@ -1,6 +1,6 @@
 import { fail, ok } from "@/lib/http";
 import { findCertificate } from "@/lib/db/queries";
-import { verifyStoredCertificate } from "@/lib/certificates/service";
+import { verifyStoredCertificate, verifyCertificateRegistry } from "@/lib/certificates/service";
 import { hederaStatus } from "@/lib/hedera/config";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,7 @@ export async function GET(
     return fail("invalid_certificate", verification.reason, 422);
   }
 
+  const registry = await verifyCertificateRegistry(certificate);
   const status = hederaStatus();
   const body = {
     certificate: {
@@ -29,7 +30,15 @@ export async function GET(
       createdAt: certificate.createdAt,
     },
     payload: verification.payload,
+    registry: {
+      contractId: certificate.registryContractId,
+      network: certificate.registryNetwork,
+      transactionId: certificate.registryTxRef,
+      revocationTransactionId: certificate.registryRevocationTxRef,
+      ...registry,
+    },
     verification: {
+      revoked: certificate.status === "revoked" || registry.revoked === true,
       signatureValid: verification.signatureValid,
       hashValid: verification.hashValid,
       reason: verification.reason,

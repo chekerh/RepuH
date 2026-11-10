@@ -3,13 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function RevokeCertificateButton({ certificateId }: { certificateId: string }) {
+export function RevokeCertificateButton({ certificateId, retry = false }: { certificateId: string; retry?: boolean }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function revoke() {
-    const reason = window.prompt("Reason for revocation (optional):");
+    const reason = retry ? "" : window.prompt("Reason for revocation (optional):");
     if (reason === null) return;
     setPending(true);
     setError(null);
@@ -23,6 +23,9 @@ export function RevokeCertificateButton({ certificateId }: { certificateId: stri
       if (!response.ok) {
         setError(payload?.error?.message ?? "The certificate could not be revoked.");
         return;
+      }
+      if (payload.registryRevocation === "failed") {
+        setError("Revoked locally. The on-chain revocation failed; retry to complete it.");
       }
       router.refresh();
     } catch {
@@ -40,7 +43,7 @@ export function RevokeCertificateButton({ certificateId }: { certificateId: stri
         disabled={pending}
         className="text-xs font-medium text-danger hover:underline disabled:opacity-50"
       >
-        {pending ? "Revoking…" : "Revoke"}
+        {pending ? "Revoking…" : retry ? "Retry on-chain revocation" : "Revoke"}
       </button>
       {error ? <span className="text-[0.625rem] text-danger">{error}</span> : null}
     </div>

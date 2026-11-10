@@ -22,6 +22,7 @@ interface IssuedResult {
   anchorSequence: number | null;
   anchorTopicId: string | null;
   publicUrl: string | null;
+  registryStatus: string;
 }
 
 export function CertificateIssuer({ skills }: { skills: IssuableSkill[] }) {
@@ -59,6 +60,7 @@ export function CertificateIssuer({ skills }: { skills: IssuableSkill[] }) {
         anchorSequence: payload.anchor?.sequenceNumber ?? null,
         anchorTopicId: payload.anchor?.topicId ?? null,
         publicUrl: payload.publicUrl,
+        registryStatus: payload.anchor?.registry?.status ?? "unavailable",
       });
       router.refresh();
     } catch {
@@ -148,12 +150,15 @@ export function CertificateIssuer({ skills }: { skills: IssuableSkill[] }) {
             signature {result.signature.slice(0, 44)}…
           </p>
           <p className="text-xs text-muted">
-            Anchor:{" "}
+            Consensus receipt:{" "}
             {result.anchorStatus === "confirmed"
               ? `Hedera consensus, topic ${result.anchorTopicId}, sequence ${result.anchorSequence}`
               : result.anchorStatus === "failed"
                 ? "the Hedera submission failed; the signature is still verifiable"
-                : "not anchored — Hedera is not configured in this deployment"}
+                : "unavailable — the consensus topic is not configured"}
+          </p>
+          <p className="text-xs text-muted">
+            Certificate smart contract: {result.registryStatus === "confirmed" ? "registration confirmed" : result.registryStatus === "failed" ? "registration failed; the signed certificate is still available" : "not configured"}.
           </p>
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <a

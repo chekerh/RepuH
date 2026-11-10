@@ -17,7 +17,8 @@
     "db:seed": "node --import tsx scripts/seed.ts",
     "hedera:setup": "node --env-file-if-exists=.env.local --import tsx scripts/hedera-setup.ts",
     "contracts:build": "node scripts/build-contracts.mjs",
-    "contracts:deploy": "node --env-file-if-exists=.env.local --import tsx scripts/deploy-contract.ts"
+    "contracts:deploy": "node --env-file-if-exists=.env.local --import tsx scripts/deploy-contract.ts",
+    "contracts:deploy:certificates": "node --env-file-if-exists=.env.local --import tsx scripts/deploy-certificate-contract.ts"
   },
   "dependencies": {
     "@designcodeio/threeui": "^1.2.0",
@@ -47,6 +48,7 @@
     "esbuild": "0.28.2",
     "eslint": "9.17.0",
     "eslint-config-next": "16.4.3",
+    "ganache": "7.9.2",
     "solc": "0.8.26",
     "tailwindcss": "4.3.3",
     "tsx": "4.20.6",

@@ -43,12 +43,14 @@ export async function POST(
   const { data, error } = await parseBody(request, revokeSchema);
   if (error) return error;
 
-  const revoked = revokeCertificate(user.id, id, data.reason ?? null);
-  if (!revoked) {
+  const result = await revokeCertificate(user.id, id, data.reason ?? null);
+  if (!result) {
     return fail("not_found", "Certificate not found.", 404);
   }
 
+  const revoked = result.certificate;
   return ok({
+    registryRevocation: result.registryRevocation,
     id: revoked.id,
     status: revoked.status,
     revokedAt: revoked.revokedAt,

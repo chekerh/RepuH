@@ -30,6 +30,9 @@ function createConnection(): Db {
   ensureColumn(db, "blockchain_anchors", "consensus_timestamp", "TEXT");
   ensureColumn(db, "blockchain_anchors", "contract_id", "TEXT");
   ensureColumn(db, "blockchain_anchors", "contract_batch_id", "TEXT");
+  for (const column of ["registry_contract_id", "registry_network", "registry_tx_ref", "registry_revocation_tx_ref"]) {
+    ensureColumn(db, "certificates", column, "TEXT");
+  }
   ensureColumn(db, "certificates", "revoked_at", "TEXT");
   ensureColumn(db, "certificates", "revocation_reason", "TEXT");
   db.prepare(

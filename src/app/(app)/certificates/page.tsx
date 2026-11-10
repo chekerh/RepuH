@@ -32,6 +32,8 @@ export default async function CertificatesPage() {
       status: certificate.status,
       anchorStatus: certificate.anchorStatus,
       anchorSequence: certificate.anchorSequence,
+      registryContractId: certificate.registryContractId,
+      registryRevocationTxRef: certificate.registryRevocationTxRef,
       createdAt: certificate.createdAt,
     };
   });
@@ -53,7 +55,7 @@ export default async function CertificatesPage() {
     <div className="space-y-8">
       <PageHeader
         title="Certificates"
-        description="A signed record of one capability at one moment, with its confidence, method and limits attached. The signature is verifiable against a published key; the anchor, when present, is a Hedera consensus receipt."
+        description="A signed record of one capability at one moment, with its confidence, method and limits attached. The signature is verifiable against a published key; the anchor, when present, can be a CertificateRegistry registration or a Hedera consensus receipt."
         actions={
           <Link
             href="/settings#integrity"
@@ -78,6 +80,9 @@ export default async function CertificatesPage() {
             </a>
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted">
+            {hedera.certificateContractConfigured
+              ? `CertificateRegistry ${hedera.certificateContractId} on Hedera ${hedera.network}. Issuance and revocation are recorded only after a successful call and matching read-back.`
+              : `Smart-contract certificate registration is unavailable. Set ${hedera.certificateContractMissing.join(", ")}. `}
             {hedera.configured
               ? `Hedera ${hedera.network} consensus service · topic ${hedera.topicId}. Certificate hashes are submitted after signing and recorded only once the network returns a sequence number.`
               : `Hedera is not configured. Certificates are signed but not anchored to a public network. Set ${hedera.missing.join(", ") || "the Hedera variables"} to enable anchoring.`}
@@ -116,14 +121,16 @@ export default async function CertificatesPage() {
                     ) : null}
                     <Badge
                       tone={
-                        certificate.anchorStatus === "confirmed"
+                        certificate.registryContractId || certificate.anchorStatus === "confirmed"
                           ? "success"
                           : certificate.anchorStatus === "failed"
                             ? "danger"
                             : "neutral"
                       }
                     >
-                      {certificate.anchorStatus === "confirmed"
+                      {certificate.registryContractId
+                        ? "Contract registered"
+                        : certificate.anchorStatus === "confirmed"
                         ? `Hedera #${certificate.anchorSequence}`
                         : certificate.anchorStatus === "failed"
                           ? "anchor failed"
@@ -140,7 +147,7 @@ export default async function CertificatesPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {certificate.status === "active" ? <RevokeCertificateButton certificateId={certificate.id} /> : null}
+                  {certificate.status === "active" || (certificate.registryContractId && !certificate.registryRevocationTxRef) ? <RevokeCertificateButton certificateId={certificate.id} retry={certificate.status === "revoked"} /> : null}
                   <Link
                     href={`/certificate/${certificate.id}`}
                     className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"

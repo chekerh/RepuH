@@ -1094,6 +1094,10 @@ interface CertificateRow {
   status: Certificate["status"];
   revoked_at: string | null;
   revocation_reason: string | null;
+  registry_contract_id: string | null;
+  registry_network: string | null;
+  registry_tx_ref: string | null;
+  registry_revocation_tx_ref: string | null;
   anchor_network: string | null;
   anchor_topic_id: string | null;
   anchor_sequence: number | null;
@@ -1116,6 +1120,10 @@ function mapCertificate(row: CertificateRow): Certificate {
     status: row.status,
     revokedAt: row.revoked_at,
     revocationReason: row.revocation_reason,
+    registryContractId: row.registry_contract_id,
+    registryNetwork: row.registry_network,
+    registryTxRef: row.registry_tx_ref,
+    registryRevocationTxRef: row.registry_revocation_tx_ref,
     anchorNetwork: row.anchor_network,
     anchorTopicId: row.anchor_topic_id,
     anchorSequence: row.anchor_sequence,
@@ -1170,6 +1178,10 @@ export function createCertificate(input: {
 
   return {
     ...input,
+    registryContractId: null,
+    registryNetwork: null,
+    registryTxRef: null,
+    registryRevocationTxRef: null,
     status: "active",
     revokedAt: null,
     revocationReason: null,
@@ -1349,4 +1361,20 @@ export function seedConsent(userId: string) {
     scope: "allowlisted professional documentation domains only",
     granted: false,
   });
+}
+
+/** Receipt metadata is separate from the immutable signed payload. */
+export function recordCertificateRegistry(userId: string, id: string, input: {
+  contractId: string; network: string; transactionId: string;
+}): Certificate {
+  getDb().prepare(`UPDATE certificates SET registry_contract_id = ?, registry_network = ?, registry_tx_ref = ? WHERE id = ? AND user_id = ?`)
+    .run(input.contractId, input.network, input.transactionId, id, userId);
+  const certificate = findCertificate(id);
+  if (!certificate || certificate.userId !== userId) throw new Error("Certificate not found");
+  return certificate;
+}
+
+export function recordCertificateRegistryRevocation(userId: string, id: string, transactionId: string) {
+  getDb().prepare("UPDATE certificates SET registry_revocation_tx_ref = ? WHERE id = ? AND user_id = ?")
+    .run(transactionId, id, userId);
 }

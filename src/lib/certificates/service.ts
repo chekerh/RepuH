@@ -7,6 +7,8 @@
  * from disagreeing.
  */
 
+import { certificateRegistryReady, registerCertificate, readRegisteredCertificate, revokeRegisteredCertificate } from "@/lib/hedera/certificate-contract";
+import { findCertificate, recordCertificateRegistry, recordCertificateRegistryRevocation } from "@/lib/db/queries";
 import { randomUUID } from "node:crypto";
 import { env } from "@/lib/env";
 import { createCertificate, revokeCertificate as revokeCertificateRecord } from "@/lib/db/queries";
@@ -47,6 +49,7 @@ export interface IssuedCertificate {
     consensusTimestamp: string | null;
     transactionId: string | null;
     explorerUrl: string | null;
+    registry: { status: "confirmed" | "failed" | "unavailable"; contractId: string | null; transactionId: string | null };
   };
   publicUrl: string | null;
 }
@@ -160,7 +163,7 @@ export async function issueCertificate(
     }
   }
 
-  const certificate = createCertificate({
+  let certificate = createCertificate({
     id,
     userId,
     skillId,
@@ -177,12 +180,24 @@ export async function issueCertificate(
     evidenceRoot: tree.root,
   });
 
+  let registryStatus: "confirmed" | "failed" | "unavailable" = "unavailable";
+  if (certificateRegistryReady()) {
+    try {
+      const receipt = await registerCertificate(id, hash);
+      certificate = recordCertificateRegistry(userId, id, receipt);
+      registryStatus = "confirmed";
+    } catch {
+      registryStatus = "failed";
+    }
+  }
+
   const explorerBase = hederaStatus().explorerBase;
   return {
     certificate,
     payload,
     verified: true,
     anchor: {
+      registry: { status: registryStatus, contractId: certificate.registryContractId, transactionId: certificate.registryTxRef },
       status: anchorStatus,
       network,
       topicId: anchorTopicId,
@@ -238,10 +253,43 @@ export function verifyStoredCertificate(certificate: Certificate): CertificateVe
   };
 }
 
-export function revokeCertificate(
+/** Local revocation takes effect immediately; network failure is explicit and retryable. */
+export async function revokeCertificate(
   userId: string,
   certificateId: string,
   reason: string | null = null,
-): Certificate | null {
-  return revokeCertificateRecord(userId, certificateId, reason);
+): Promise<{ certificate: Certificate; registryRevocation: "confirmed" | "failed" | "unavailable" } | null> {
+  const owned = findCertificate(certificateId);
+  if (!owned || owned.userId !== userId) return null;
+  const certificate = revokeCertificateRecord(userId, certificateId, reason);
+  if (!certificate) return null;
+  if (!certificate.registryContractId || !certificate.registryNetwork) {
+    return { certificate, registryRevocation: "unavailable" };
+  }
+  if (certificate.registryRevocationTxRef) return { certificate, registryRevocation: "confirmed" };
+  try {
+    const transactionId = await revokeRegisteredCertificate(certificate.registryContractId, certificate.registryNetwork, certificate.id, certificate.payloadHash);
+    recordCertificateRegistryRevocation(userId, certificateId, transactionId);
+    return { certificate: { ...certificate, registryRevocationTxRef: transactionId }, registryRevocation: "confirmed" };
+  } catch {
+    return { certificate, registryRevocation: "failed" };
+  }
+}
+
+/** Live registry state is distinct from the stored signature and local status. */
+export async function verifyCertificateRegistry(certificate: Certificate) {
+  if (!certificate.registryContractId || !certificate.registryNetwork) {
+    return { checked: false, matches: false, revoked: null, reason: "No confirmed smart-contract registration is stored." };
+  }
+  try {
+    const record = await readRegisteredCertificate(certificate.registryContractId, certificate.registryNetwork, certificate.id);
+    const matches = record.payloadHash === certificate.payloadHash && record.issuedAt !== "0";
+    return { checked: true, matches, revoked: record.revoked, reason: !matches
+      ? "The on-chain certificate fingerprint does not match."
+      : record.revoked ? "The certificate is revoked in the smart contract."
+      : certificate.status === "revoked" ? "Revoked locally; on-chain revocation is still pending."
+      : "The on-chain certificate fingerprint matches and is not revoked." };
+  } catch {
+    return { checked: false, matches: false, revoked: null, reason: "The certificate registry could not be checked. Its current status is unverified." };
+  }
 }

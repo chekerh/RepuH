@@ -227,3 +227,12 @@ Stated, not hidden:
 
 The repository is provided for evaluation. Third-party dependencies retain their
 own licenses; no third-party code was vendored into `src/`.
+
+### Second smart contract: certificate registry
+
+Certificate issuance and revocation can also use `contracts/CertificateRegistry.sol`.
+Build both contracts with `pnpm contracts:build`; deploy the registry with
+`pnpm contracts:deploy:certificates` and set `HEDERA_CERTIFICATE_CONTRACT_ID`.
+The certificates page reports configuration, registration and retryable revocation;
+the public certificate page checks live contract state. Existing HCS receipts and
+signed payloads remain compatible. See [the two-contract demo](docs/CERTIFICATES.md#configure-and-demonstrate).

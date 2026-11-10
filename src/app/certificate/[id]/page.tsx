@@ -5,7 +5,7 @@ import { ArrowUpRight, BadgeCheck, Download, ShieldAlert, ShieldCheck } from "lu
 import { Wordmark } from "@/components/brand";
 import { Badge } from "@/components/ui";
 import { findCertificate } from "@/lib/db/queries";
-import { verifyStoredCertificate } from "@/lib/certificates/service";
+import { verifyStoredCertificate, verifyCertificateRegistry } from "@/lib/certificates/service";
 import { hederaStatus } from "@/lib/hedera/config";
 import { readMirrorMessage } from "@/lib/hedera/hcs";
 import { formatDateTime } from "@/lib/utils";
@@ -78,6 +78,7 @@ export default async function CertificatePage({
     );
   }
 
+  const registry = await verifyCertificateRegistry(certificate);
   const payload = verification.payload;
   const mirror = await checkMirror(
     certificate.anchorTopicId,
@@ -86,7 +87,7 @@ export default async function CertificatePage({
   );
 
   const anchorTone =
-    certificate.anchorStatus === "confirmed"
+    certificate.registryContractId || certificate.anchorStatus === "confirmed"
       ? "success"
       : certificate.anchorStatus === "failed"
         ? "danger"
@@ -111,13 +112,15 @@ export default async function CertificatePage({
           <span className="label">Evidence certificate</span>
           <Badge tone="neutral">{payload.v}</Badge>
           <Badge tone={anchorTone}>
-            {certificate.anchorStatus === "confirmed"
+            {certificate.registryContractId
+              ? "Contract registered"
+              : certificate.anchorStatus === "confirmed"
               ? `Hedera ${certificate.anchorNetwork?.replace("hedera-", "") ?? ""} · #${certificate.anchorSequence}`
               : certificate.anchorStatus === "failed"
                 ? "Anchor failed"
                 : "Not anchored"}
           </Badge>
-          {certificate.status === "revoked" ? <Badge tone="danger">Revoked</Badge> : null}
+          {certificate.status === "revoked" || registry.revoked === true ? <Badge tone="danger">Revoked</Badge> : null}
         </div>
 
         <h1 className="display mt-4 text-[clamp(2.4rem,6vw,4rem)]">{payload.claim.skillName}</h1>
@@ -240,6 +243,19 @@ export default async function CertificatePage({
                 </a>
                 . The server is not trusted to tell you the signature is valid.
               </p>
+            </div>
+
+            <div className="border border-border p-4">
+              <p className="text-[0.8125rem] font-medium">Certificate smart contract</p>
+              <p className="mt-2 text-[0.6875rem] text-muted">{registry.reason}</p>
+              {certificate.registryContractId ? (
+                <a href={`https://hashscan.io/${certificate.registryNetwork?.replace("hedera-", "")}/contract/${certificate.registryContractId}`}
+                  target="_blank" rel="noreferrer noopener" className="mt-2 inline-flex text-xs text-primary underline">
+                  Inspect CertificateRegistry {certificate.registryContractId}
+                </a>
+              ) : null}
+              {certificate.registryTxRef ? <p className="mt-2 break-all font-mono text-[0.625rem] text-muted">Issue transaction: {certificate.registryTxRef}</p> : null}
+              {certificate.registryRevocationTxRef ? <p className="mt-2 break-all font-mono text-[0.625rem] text-muted">Revoke transaction: {certificate.registryRevocationTxRef}</p> : null}
             </div>
 
             <div className="border border-border p-4">

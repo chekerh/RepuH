@@ -125,6 +125,10 @@ export interface Certificate {
   status: "active" | "revoked";
   revokedAt: string | null;
   revocationReason: string | null;
+  registryContractId: string | null;
+  registryNetwork: string | null;
+  registryTxRef: string | null;
+  registryRevocationTxRef: string | null;
   anchorNetwork: string | null;
   anchorTopicId: string | null;
   anchorSequence: number | null;

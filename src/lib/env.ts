@@ -34,6 +34,7 @@ export const env = {
     topicId: process.env.HEDERA_TOPIC_ID ?? "",
     /** Id of the deployed EvidenceAnchor contract (Hedera Smart Contract Service). */
     contractId: process.env.HEDERA_CONTRACT_ID ?? "",
+    certificateContractId: process.env.HEDERA_CERTIFICATE_CONTRACT_ID ?? "",
     /** True when the consensus-service path (operator, key and topic) is present. */
     configured: Boolean(
       process.env.HEDERA_OPERATOR_ID &&

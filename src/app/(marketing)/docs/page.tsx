@@ -240,6 +240,11 @@ export default function DocsPage() {
           <code>/api/certificates/key</code>, so a downloaded certificate can be verified offline. When
           Hedera is configured, the certificate hash is also submitted to the consensus service; the
           anchor is stored beside the signature, never inside it.
+          {" "}A second smart contract, <code>CertificateRegistry</code>, can register certificate
+          fingerprints and irreversible revocation when <code>HEDERA_CERTIFICATE_CONTRACT_ID</code>
+          {" "}is configured. Only authorised issuers can register; only the original issuer can
+          revoke. The public certificate page reads the registry to check its fingerprint and
+          revocation status. Failed network checks are reported as unverified.
         </p>
 
         <h2 id="development-adapter">Development adapter</h2>

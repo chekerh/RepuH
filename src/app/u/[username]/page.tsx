@@ -84,6 +84,7 @@ export default async function PublicProfilePage({
       estimate: payload?.claim.estimate ?? null,
       anchorStatus: certificate.anchorStatus,
       anchorSequence: certificate.anchorSequence,
+      registryContractId: certificate.registryContractId,
     };
   });
   const top = topSkillsFor(profile.userId, 6);
@@ -314,10 +315,12 @@ export default async function PublicProfilePage({
                           ) : null}
                           <Badge
                             tone={
-                              certificate.anchorStatus === "confirmed" ? "success" : "neutral"
+                              certificate.registryContractId || certificate.anchorStatus === "confirmed" ? "success" : "neutral"
                             }
                           >
-                            {certificate.anchorStatus === "confirmed"
+                            {certificate.registryContractId
+                              ? "Contract registered"
+                              : certificate.anchorStatus === "confirmed"
                               ? `Hedera #${certificate.anchorSequence}`
                               : "signed"}
                           </Badge>

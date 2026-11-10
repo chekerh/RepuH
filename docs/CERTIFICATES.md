@@ -154,3 +154,67 @@ Certificates can be revoked by their issuer through `POST /api/certificates/[id]
 - **Expiry.** Certificates do not expire. The estimate they record ages; the
   limitation text and algorithm version are how a reader judges that.
 - **Selective disclosure.** A certificate is all-or-nothing.
+
+## CertificateRegistry smart contract (second contract)
+
+`contracts/CertificateRegistry.sol` implements an independent certificate lifecycle,
+separate from `EvidenceAnchor`. The owner authorises issuer addresses with
+`setIssuer(address,bool)`. Authorised issuers call
+`issueCertificate(bytes32,bytes32)`; duplicate IDs and zero IDs/hashes are rejected.
+Only the original issuer can call `revokeCertificate(bytes32)`, even if permission
+to issue new certificates was subsequently removed. Revocation is irreversible
+and repeat revocation is idempotent. `getCertificate(bytes32)` returns the hash,
+issuer address, issuance timestamp and revoked flag. Events record issuance,
+revocation and issuer permission changes. The contract is unaudited.
+
+On-chain ID = SHA-256 of `repuh.certificate-registry.v1|` followed by the certificate
+ID. Registry interface version is v1; certificate payload version and canonical
+signing bytes are unchanged. The chain receives only that ID digest and the
+payload fingerprint; it also records the public issuer address and timestamp.
+It receives no raw certificate, personal fields, estimates or revocation reason.
+
+### Configure and demonstrate
+
+1. Run `pnpm contracts:build` to compile both contracts.
+2. Configure a funded **testnet** operator using `HEDERA_OPERATOR_ID` and
+   `HEDERA_OPERATOR_KEY` in `.env.local`. Do not commit credentials.
+3. Run `pnpm contracts:deploy` for EvidenceAnchor and
+   `pnpm contracts:deploy:certificates` for CertificateRegistry.
+4. Save the printed `HEDERA_CONTRACT_ID` and `HEDERA_CERTIFICATE_CONTRACT_ID`
+   in `.env.local`, then restart the app. The deploying operator is the initial
+   certificate issuer. Other operators need `setIssuer` authorisation; only the
+   address that issued a record can revoke it.
+5. Issue a certificate for an established or provisional capability. The result
+   distinguishes consensus anchoring from smart-contract registration. Contract
+   confirmation requires a SUCCESS receipt and matching `getCertificate` result.
+6. Open its public certificate page. It reads the saved contract and network and
+   reports the live fingerprint match and revocation flag. The JSON download also
+   contains registry receipts and the live check. An unreachable network is
+   explicitly unverified, never silently valid.
+7. Revoke from the certificates page. Local revocation takes effect immediately;
+   on-chain revocation is confirmed only after a successful transaction and
+   read-back. A failed network operation shows a retry control. Show the professor
+   the changed public status and both transaction receipts on HashScan.
+
+The consensus topic is optional and remains a separate legacy anchor path.
+`anchorStatus` continues to describe that HCS receipt; registry fields describe
+contract registration. Without registry configuration, the signed certificate
+still works and the UI says contract registration is unavailable. Older certificates
+are not automatically registered. If initial registration fails, the signed
+certificate is retained but no confirmed contract receipt is claimed; automatic
+registration reconciliation is not implemented.
+
+Stored contract IDs and networks are used for later verification and revocation,
+so changing the configured deployment does not redirect old certificates. The
+operator must be configured on the original network; a mismatch is unverified.
+Deleting an account cascades through local certificate/receipt rows, but cannot
+erase on-chain fingerprints or revoke them automatically.
+
+### Verification performed in this repository
+
+`tests/certificate-registry.test.ts` deploys the compiled bytecode to an in-process
+local EVM and exercises permissions, invalid inputs, duplicate prevention,
+issuance, read-back, disabling issuers, revocation and repeat revocation.
+`tests/certificate-registry-storage.test.ts` checks migration of an older database,
+receipt persistence, ownership, retryable network failures and deletion cascades.
+These are local tests, not evidence of a live Hedera deployment.

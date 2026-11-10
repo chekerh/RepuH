@@ -84,12 +84,15 @@ JSON string), `payload_hash`, `signature` (base64 Ed25519), `key_id`,
 `status` (`active | revoked`), `anchor_network`, `anchor_topic_id`,
 `anchor_sequence`, `anchor_tx_ref`, `anchor_status`
 (`unavailable | local | submitted | confirmed | failed`), `evidence_root`,
-`created_at`.
+`created_at`, `registry_contract_id`, `registry_network`, `registry_tx_ref`,
+`registry_revocation_tx_ref` (all nullable receipt metadata). Existing databases
+receive these columns through idempotent migrations.
 
 The anchor is stored beside the payload rather than inside it, so losing a
 receipt cannot invalidate the signature. Cascade delete with the user; a Hedera
-message already ordered by the network is not recalled. Revocation is modelled
-but has no endpoint yet.
+message or contract record already committed to the network is not recalled.
+`POST /api/certificates/[id]/revoke` revokes locally and attempts contract revocation
+when a confirmed registry receipt exists. A failed contract call remains retryable.
 
 ### `consent_records`
 Append-only: `purpose` (`browser_observation | github_metadata | public_profile

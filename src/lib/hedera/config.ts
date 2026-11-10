@@ -1,10 +1,12 @@
 /**
  * Hedera configuration state.
  *
- * Two capabilities are reported separately because they are not the same thing:
+ * Three capabilities are reported separately: evidence roots, certificate registry,
+ * and consensus receipts.
  *
  * - `contractConfigured` — the deployed `EvidenceAnchor` contract, used to
  *   anchor evidence batches. This is the primary integrity path.
+ * - `certificateContractConfigured` — CertificateRegistry issuance and revocation.
  * - `configured` — the consensus-service topic, used to anchor certificate
  *   hashes. Unchanged meaning so the certificate and admin surfaces keep
  *   telling the truth about what is actually anchored.
@@ -23,6 +25,9 @@ export interface HederaStatus {
   configured: boolean;
   /** Smart-contract (evidence batch) anchoring is fully configured. */
   contractConfigured: boolean;
+  certificateContractId: string | null;
+  certificateContractConfigured: boolean;
+  certificateContractMissing: string[];
   network: HederaNetwork;
   operatorId: string | null;
   topicId: string | null;
@@ -68,18 +73,23 @@ export function hederaStatus(): HederaStatus {
         ? `Evidence roots are submitted to the EvidenceAnchor contract on Hedera ${network}. Add ${missing.join(", ")} to also anchor certificate hashes.`
         : configured
           ? `Certificate hashes are anchored to Hedera ${network} consensus. Add ${contractMissing.join(", ")} to anchor evidence roots with the contract.`
-          : `Hedera anchoring is not configured. Add ${contractMissing.join(", ")} for contract anchoring and ${missing.join(", ")} for certificate hashes.`;
+          : `Evidence and consensus anchoring are not configured. Add ${contractMissing.join(", ")} for contract anchoring and ${missing.join(", ")} for certificate hashes.`;
 
   return {
     configured,
     contractConfigured,
+    certificateContractId: env.hedera.certificateContractId || null,
+    certificateContractConfigured: operatorMissing.length === 0 && Boolean(env.hedera.certificateContractId),
+    certificateContractMissing: [...operatorMissing, ...(!env.hedera.certificateContractId ? ["HEDERA_CERTIFICATE_CONTRACT_ID"] : [])],
     network,
     operatorId: env.hedera.operatorId || null,
     topicId: env.hedera.topicId || null,
     contractId: env.hedera.contractId || null,
     missing,
     contractMissing,
-    reason,
+    reason: `${reason} ${env.hedera.certificateContractId && operatorMissing.length === 0
+      ? `Certificate issuance and revocation use CertificateRegistry ${env.hedera.certificateContractId}.`
+      : "CertificateRegistry is not configured."}`,
     explorerBase: EXPLORERS[network],
   };
 }

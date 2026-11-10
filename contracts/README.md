@@ -65,3 +65,18 @@ artifact, and pins the function selectors (`submitRoot(bytes32,uint256)` →
 `5e4c087d`, `getRoot(uint256)` → `9b24b3b0`). To compare a deployment with this
 source, compare the deployed bytecode from the mirror node with
 `artifacts/EvidenceAnchor.json`'s `deployedBytecode`.
+
+## Second contract: CertificateRegistry
+
+`CertificateRegistry.sol` independently manages certificate fingerprints and
+revocation. See [certificate lifecycle and demo steps](../docs/CERTIFICATES.md#certificateregistry-smart-contract-second-contract).
+
+- `setIssuer(address,bool)` — owner controls who can issue.
+- `issueCertificate(bytes32,bytes32)` — authorised issuer records an immutable fingerprint.
+- `revokeCertificate(bytes32)` — original issuer irreversibly revokes.
+- `getCertificate(bytes32)` — reads fingerprint, issuer, timestamp and revocation flag.
+
+`pnpm contracts:build` compiles both contracts. Deploy the second with
+`pnpm contracts:deploy:certificates`, then configure the printed
+`HEDERA_CERTIFICATE_CONTRACT_ID`. It is unaudited; no live deployment is implied
+by the committed artifact. Local EVM lifecycle tests run with `pnpm test`.

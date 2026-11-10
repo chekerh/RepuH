@@ -6,11 +6,12 @@ independently checkable, and they do different jobs:
 | Path | Service | What it stores | Used for |
 | --- | --- | --- | --- |
 | **Contract** | Smart Contract Service (HSCS) | one `bytes32` Merkle root per `batchId`, plus `block.timestamp` | evidence batches — the primary path |
+| **Certificate registry** | Smart Contract Service (HSCS) | certificate ID digest, payload fingerprint, issuer, timestamp and revoked flag | certificate issuance and revocation |
 | **Consensus** | Consensus Service (HCS) | a small JSON envelope per message | certificate hashes, and evidence batches only when no contract is configured |
 
-Neither path receives a name, an email address, a person, an evidence payload, a
-skill estimate or a project name. A batch root is the only thing that leaves the
-system, and it is the same information a public Merkle root already exposes.
+These paths receive fingerprints and public transaction metadata, never raw
+evidence, names, email addresses or skill estimates. Certificate registry state
+also exposes the submitting issuer address, issuance timestamp and revocation flag.
 
 ## Why a smart contract is used
 
@@ -219,3 +220,12 @@ A network outage is reported as "could not be read", never as a failed anchor.
 
 That distinction matters: compiled bytecode is not a deployed contract, and a
 transaction id is not a confirmed anchor.
+
+## CertificateRegistry (second smart contract)
+
+Set `HEDERA_CERTIFICATE_CONTRACT_ID` to enable certificate registration and
+revocation independently of the evidence contract and consensus topic. Build
+with `pnpm contracts:build`; deploy with `pnpm contracts:deploy:certificates`.
+Only a successful transaction plus a matching state read produces a confirmed
+registry receipt. Live verification uses the saved deployment ID and network.
+See [certificate registry behavior and demonstration](CERTIFICATES.md#certificateregistry-smart-contract-second-contract).
