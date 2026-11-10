@@ -225,6 +225,7 @@ export default async function SettingsPage() {
             sequenceNumber: anchor.sequenceNumber,
             consensusTimestamp: anchor.consensusTimestamp,
             contractId: anchor.contractId,
+            contractBatchId: anchor.contractBatchId,
             commitments: anchor.commitments,
             createdAt: anchor.createdAt,
           }))}

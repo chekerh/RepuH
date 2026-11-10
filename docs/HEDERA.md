@@ -50,6 +50,23 @@ The compiled artifact is committed at `contracts/artifacts/EvidenceAnchor.json`
 unit test fails if the artifact no longer matches the committed source, so the
 deployed bytecode cannot silently drift from the code under review.
 
+### The uint256 a root is stored under
+
+`EvidenceAnchor` keys roots by one `uint256`, while RepuH numbers batches per
+account. Sending the local batch number directly would make every account
+collide on batch 1, and the contract rejects a duplicate id — the second account
+could never anchor. The adapter therefore submits a derived key:
+
+```
+key = uint256(sha256("repuh.contract-batch.v1|" + userId + "|" + batchId))
+```
+
+It is globally unique, stable for a stored batch, and reproducible from the row.
+The settings panel prints the decimal key beside each contract anchor; that
+value — not the per-account batch number — is what `getRoot` takes. The app also
+numbers batches from the highest existing id rather than the row count, so a
+deleted batch cannot cause an id that is already on-chain to be reused.
+
 ## Configuration
 
 ```bash
@@ -117,9 +134,9 @@ a reference without a receipt is not an anchor.
 
 ## Where the receipt is stored
 
-`blockchain_anchors` holds `provider`, `contract_id`, `tx_ref`,
-`consensus_timestamp` for contract anchors, and `topic_id`, `sequence_number`,
-`consensus_timestamp` for consensus anchors. Certificates store
+`blockchain_anchors` holds `provider`, `contract_id`, `contract_batch_id`,
+`tx_ref` and `consensus_timestamp` for contract anchors, and `topic_id`,
+`sequence_number`, `consensus_timestamp` for consensus anchors. Certificates store
 `anchor_topic_id`, `anchor_sequence`, `anchor_tx_ref`, `anchor_network` and
 `anchor_status`.
 
@@ -135,7 +152,8 @@ Contract anchor, no credentials required:
    the `RootSubmitted` events are visible.
 2. Read the root yourself through the public JSON-RPC relay. Get the EVM address
    from the mirror node, then call the `getRoot(uint256)` selector `0x9b24b3b0`
-   with the batch id left-padded to 32 bytes:
+   with the decimal on-chain batch key (shown beside the anchor in the settings
+   panel) left-padded to 32 bytes:
 
    ```bash
    curl -s "https://testnet.mirrornode.hedera.com/api/v1/contracts/<contractId>" | grep evm_address

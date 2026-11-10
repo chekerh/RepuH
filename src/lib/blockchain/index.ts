@@ -4,7 +4,12 @@ import {
   verifyProof,
   type MerkleProof,
 } from "@/lib/integrity/merkle";
-import { commitmentOf, unanchoredEvidence } from "@/lib/integrity/anchoring";
+import {
+  commitmentOf,
+  contractBatchKey,
+  nextBatchId,
+  unanchoredEvidence,
+} from "@/lib/integrity/anchoring";
 import { createAnchor, listEvidence, listAnchors, findAnchor } from "@/lib/db/queries";
 import type { Anchor } from "@/lib/domain/types";
 import { hederaContractReady, hederaReady, hederaStatus, topicExplorerUrl } from "@/lib/hedera/config";
@@ -24,6 +29,8 @@ export interface AnchorSubmission {
   sequenceNumber: number | null;
   consensusTimestamp: string | null;
   contractId: string | null;
+  /** Decimal uint256 the root is stored under on-chain. */
+  contractBatchId: string | null;
 }
 
 export interface AnchorProvider {
@@ -35,6 +42,7 @@ export interface AnchorProvider {
     batchId: number;
     leafCount: number;
     anchoredAt: string;
+    contractBatchId?: bigint;
   }): Promise<AnchorSubmission>;
 }
 
@@ -55,6 +63,7 @@ export const localProvider: AnchorProvider = {
       sequenceNumber: null,
       consensusTimestamp: null,
       contractId: null,
+      contractBatchId: null,
     };
   },
 };
@@ -74,7 +83,13 @@ export const hederaContractProvider: AnchorProvider = {
     return hederaContractReady();
   },
   async submit(input) {
-    const receipt = await submitRootOnContract({ root: input.root, batchId: input.batchId });
+    if (input.contractBatchId === undefined) {
+      throw new Error("The contract batch key was not derived before submission");
+    }
+    const receipt = await submitRootOnContract({
+      root: input.root,
+      onChainBatchId: input.contractBatchId,
+    });
     return {
       status: "confirmed",
       txRef: receipt.transactionId,
@@ -83,6 +98,7 @@ export const hederaContractProvider: AnchorProvider = {
       sequenceNumber: null,
       consensusTimestamp: receipt.consensusTimestamp,
       contractId: receipt.contractId,
+      contractBatchId: input.contractBatchId.toString(10),
     };
   },
 };
@@ -114,6 +130,7 @@ export const hederaProvider: AnchorProvider = {
       sequenceNumber: receipt.sequenceNumber,
       consensusTimestamp: receipt.consensusTimestamp,
       contractId: null,
+      contractBatchId: null,
     };
   },
 };
@@ -179,15 +196,20 @@ export async function anchorEvidence(userId: string): Promise<{
   const tree = buildMerkleTree(commitments);
   const provider = resolveProvider();
   const anchoredAt = new Date().toISOString();
+  // The local batch number and the on-chain key must be decided together: the
+  // stored batch id is what a later read-back uses to find the root.
+  const batchId = nextBatchId(existing);
   const submission = await provider.submit({
     root: tree.root,
-    batchId: existing.length + 1,
+    batchId,
     leafCount: commitments.length,
     anchoredAt,
+    contractBatchId: contractBatchKey(userId, batchId),
   });
 
   const anchor = createAnchor({
     userId,
+    batchId,
     merkleRoot: tree.root,
     commitments,
     provider: provider.id,
@@ -198,6 +220,7 @@ export async function anchorEvidence(userId: string): Promise<{
     sequenceNumber: submission.sequenceNumber,
     consensusTimestamp: submission.consensusTimestamp,
     contractId: submission.contractId,
+    contractBatchId: submission.contractBatchId,
   });
 
   return { anchor, alreadyAnchored: existing.length };
@@ -262,8 +285,8 @@ export async function verifyAnchorOnChain(
     };
   }
 
-  if (anchor.provider === "hedera-contract" && anchor.contractId) {
-    const read = await readAnchorRoot(anchor.contractId, anchor.batchId);
+  if (anchor.provider === "hedera-contract" && anchor.contractId && anchor.contractBatchId) {
+    const read = await readAnchorRoot(anchor.contractId, BigInt(anchor.contractBatchId));
     if (!read.root) {
       return {
         checked: false,

@@ -54,8 +54,9 @@ and internal nodes.
 2. Drops commitments already present in an existing batch.
 3. Builds a tree over the remainder; refuses when nothing is pending.
 4. Submits the root through the resolved provider: `submitRoot` on the
-   EvidenceAnchor contract, then a `getRoot` read-back; otherwise an HCS message
-   with a consensus receipt; otherwise a local reference.
+   EvidenceAnchor contract under a key derived from the account and batch
+   ([docs/HEDERA.md](HEDERA.md)), then a `getRoot` read-back; otherwise an HCS
+   message with a consensus receipt; otherwise a local reference.
 5. Persists the anchor only after the provider returns.
 
 `batch_id` is sequential per user and unique with `user_id`.
@@ -73,9 +74,10 @@ transaction that did not complete. The old placeholder that recorded a
 `pending:` reference for an unsubmitted transaction has been removed: a
 reference without a receipt is not an anchor.
 
-Contract batches store `contract_id`, `tx_ref` and `consensus_timestamp`;
-consensus batches store `topic_id`, `sequence_number` and `consensus_timestamp`.
-The settings panel links each confirmed batch to HashScan.
+Contract batches store `contract_id`, `contract_batch_id`, `tx_ref` and
+`consensus_timestamp`; consensus batches store `topic_id`, `sequence_number` and
+`consensus_timestamp`. The settings panel links each confirmed batch to HashScan
+and prints the on-chain batch key the root is stored under.
 
 ## Independent verification
 

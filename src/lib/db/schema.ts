@@ -151,6 +151,7 @@ CREATE TABLE IF NOT EXISTS blockchain_anchors (
   sequence_number INTEGER,
   consensus_timestamp TEXT,
   contract_id TEXT,
+  contract_batch_id TEXT,
   commitments TEXT NOT NULL DEFAULT '[]',
   created_at TEXT NOT NULL,
   UNIQUE(user_id, batch_id)

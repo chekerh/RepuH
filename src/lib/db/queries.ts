@@ -978,6 +978,8 @@ export function searchPublicProfiles(query: string, limit = 24): Profile[] {
 
 export function createAnchor(input: {
   userId: string;
+  /** Per-account batch number, already decided when the root was submitted. */
+  batchId: number;
   merkleRoot: string;
   commitments: string[];
   provider: string;
@@ -988,18 +990,17 @@ export function createAnchor(input: {
   sequenceNumber?: number | null;
   consensusTimestamp?: string | null;
   contractId?: string | null;
+  contractBatchId?: string | null;
 }): Anchor {
   const db = getDb();
-  const previous = db
-    .prepare("SELECT MAX(batch_id) AS batch FROM blockchain_anchors WHERE user_id = ?")
-    .get(input.userId) as { batch: number | null };
-  const batchId = (previous.batch ?? 0) + 1;
+  const batchId = input.batchId;
   const id = newId("anc");
   db.prepare(
     `INSERT INTO blockchain_anchors
       (id, user_id, batch_id, merkle_root, provider, network, tx_ref, status, leaf_count,
-       topic_id, sequence_number, consensus_timestamp, contract_id, commitments, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       topic_id, sequence_number, consensus_timestamp, contract_id, contract_batch_id,
+       commitments, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.userId,
@@ -1014,6 +1015,7 @@ export function createAnchor(input: {
     input.sequenceNumber ?? null,
     input.consensusTimestamp ?? null,
     input.contractId ?? null,
+    input.contractBatchId ?? null,
     JSON.stringify(input.commitments),
     nowIso(),
   );
@@ -1031,6 +1033,7 @@ export function createAnchor(input: {
     sequenceNumber: input.sequenceNumber ?? null,
     consensusTimestamp: input.consensusTimestamp ?? null,
     contractId: input.contractId ?? null,
+    contractBatchId: input.contractBatchId ?? null,
     commitments: input.commitments,
     createdAt: nowIso(),
   };
@@ -1053,6 +1056,7 @@ export function listAnchors(userId: string): Anchor[] {
     sequence_number: number | null;
     consensus_timestamp: string | null;
     contract_id: string | null;
+    contract_batch_id: string | null;
     commitments: string;
     created_at: string;
   }>;
@@ -1070,6 +1074,7 @@ export function listAnchors(userId: string): Anchor[] {
     sequenceNumber: row.sequence_number,
     consensusTimestamp: row.consensus_timestamp,
     contractId: row.contract_id,
+    contractBatchId: row.contract_batch_id,
     commitments: parseJson<string[]>(row.commitments, []),
     createdAt: row.created_at,
   }));

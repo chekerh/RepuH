@@ -29,7 +29,14 @@ at the previous id stay readable and are never migrated or rewritten.
 
 ## What goes on-chain
 
-Only a 32-byte Merkle root and the batch id. Commitments are SHA-256 hashes over
+The `batchId` the application submits is not its per-account batch number: it is
+`uint256(sha256("repuh.contract-batch.v1|" + userId + "|" + batchId))`, so two
+accounts cannot collide on batch 1 and be rejected as duplicates. The mapping
+stays a plain `uint256`; the derivation lives in
+`src/lib/integrity/anchoring.ts` and is covered by a unit test.
+
+Only a 32-byte Merkle root and the derived batch key. Commitments are SHA-256
+hashes over
 a canonical structure containing a hash version, an evidence id, the signal, the
 timestamp and a content digest. The input excludes names, email addresses, skill
 estimates and project identifiers.

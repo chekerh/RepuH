@@ -107,6 +107,8 @@ export interface Anchor {
   consensusTimestamp: string | null;
   /** Set when the root was submitted to the EvidenceAnchor smart contract. */
   contractId: string | null;
+  /** Decimal uint256 the contract stores this batch's root under. */
+  contractBatchId: string | null;
   commitments: string[];
   createdAt: string;
 }

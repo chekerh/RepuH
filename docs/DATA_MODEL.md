@@ -70,10 +70,11 @@ skill; history enables provenance and lets a version bump be visible.
 `batch_id` unique per user, `merkle_root`, `provider`
 (`hedera-contract | hedera-hcs | local`), `network`, `tx_ref`,
 `status` (`local | submitted | confirmed | failed`), `leaf_count`,
-`contract_id`, `topic_id`, `sequence_number`, `consensus_timestamp`,
-`commitments` JSON array. Contract batches populate `contract_id` and `tx_ref`;
-consensus batches populate `topic_id` and `sequence_number`; both are null for
-local batches. Values are only written after the network receipt (and, for the
+`contract_id`, `contract_batch_id`, `topic_id`, `sequence_number`,
+`consensus_timestamp`, `commitments` JSON array. Contract batches populate
+`contract_id`, `contract_batch_id` (the decimal uint256 the root is stored under)
+and `tx_ref`; consensus batches populate `topic_id` and `sequence_number`; all
+are null for local batches. Values are only written after the network receipt (and, for the
 contract, a read-back of the stored root). Commitments are stored so inclusion
 proofs can be regenerated without rescanning evidence.
 

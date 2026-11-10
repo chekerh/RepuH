@@ -99,8 +99,9 @@ a `hedera` object with `configured` (consensus), `contractConfigured`,
 `contractMissing[]`, `reason` and `explorerBase`. Missing configuration is
 reported as missing — never as a working connection.
 
-Contract batches store `contractId`, `txRef` and `consensusTimestamp`; consensus
-batches store `topicId`, `sequenceNumber` and `consensusTimestamp`. `confirmed`
+Contract batches store `contractId`, `contractBatchId` (decimal uint256), `txRef`
+and `consensusTimestamp`; consensus batches store `topicId`, `sequenceNumber`
+and `consensusTimestamp`. `confirmed`
 is only written after a contract call returns `SUCCESS` and `getRoot` reads the
 root back, or after a receipt with a topic sequence number. A failed submit
 returns `409` and writes no row.

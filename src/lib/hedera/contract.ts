@@ -21,6 +21,7 @@ import {
   ContractId,
   Status,
 } from "@hashgraph/sdk";
+import BigNumber from "bignumber.js";
 import { env } from "@/lib/env";
 import { hederaContractReady, hederaNetwork, operatorKey } from "@/lib/hedera/config";
 import { hederaClient } from "@/lib/hedera/client";
@@ -38,6 +39,18 @@ export interface ContractAnchorReceipt {
 }
 
 const ROOT_PATTERN = /^[0-9a-f]{64}$/;
+const MAX_UINT256 = (1n << 256n) - 1n;
+
+/**
+ * The SDK encodes uint256 as a BigNumber; the on-chain batch key is a 256-bit
+ * digest, so it cannot travel as a JS number or a Long.
+ */
+export function uint256Param(value: bigint): BigNumber {
+  if (value <= 0n || value > MAX_UINT256) {
+    throw new Error("A contract batch key must be a positive uint256");
+  }
+  return new BigNumber(value.toString(10));
+}
 
 export function rootToBytes32(root: string): Uint8Array {
   if (!ROOT_PATTERN.test(root)) {
@@ -57,20 +70,18 @@ export function bytes32ToRoot(value: Uint8Array): string {
  */
 export async function submitRootOnContract(input: {
   root: string;
-  batchId: number;
+  /** Globally unique batch key, derived from the account and its batch number. */
+  onChainBatchId: bigint;
 }): Promise<ContractAnchorReceipt> {
   if (!hederaContractReady()) {
     throw new Error("Hedera smart contract anchoring is not configured");
-  }
-  if (!Number.isInteger(input.batchId) || input.batchId < 1) {
-    throw new Error("Batch id must be a positive integer");
   }
   const contractId = ContractId.fromString(env.hedera.contractId);
   const instance = hederaClient();
   try {
     const params = new ContractFunctionParameters()
       .addBytes32(rootToBytes32(input.root))
-      .addUint256(input.batchId);
+      .addUint256(uint256Param(input.onChainBatchId));
 
     const response = await new ContractExecuteTransaction()
       .setContractId(contractId)
@@ -83,7 +94,7 @@ export async function submitRootOnContract(input: {
       throw new Error(`The EvidenceAnchor call did not succeed (${receipt.status.toString()})`);
     }
 
-    const stored = await readRootFromContract(instance, contractId.toString(), input.batchId);
+    const stored = await readRootFromContract(instance, contractId.toString(), input.onChainBatchId);
     if (stored !== input.root) {
       throw new Error(
         "The anchor transaction succeeded but the contract does not return the submitted root",
@@ -105,14 +116,14 @@ export async function submitRootOnContract(input: {
 /** Read the stored root for a batch id. Requires the configured operator. */
 export async function readAnchorRoot(
   contractId: string,
-  batchId: number,
+  onChainBatchId: bigint,
 ): Promise<{ root: string | null; reason: string }> {
   if (!operatorKey()) {
     return { root: null, reason: "A Hedera operator is required to read contract state." };
   }
   const instance = hederaClient();
   try {
-    const root = await readRootFromContract(instance, contractId, batchId);
+    const root = await readRootFromContract(instance, contractId, onChainBatchId);
     return { root, reason: root === null ? "The contract has no root for that batch id." : "" };
   } catch (cause) {
     return {
@@ -130,12 +141,12 @@ export async function readAnchorRoot(
 async function readRootFromContract(
   instance: ReturnType<typeof hederaClient>,
   contractId: string,
-  batchId: number,
+  onChainBatchId: bigint,
 ): Promise<string | null> {
   const result = await new ContractCallQuery()
     .setContractId(ContractId.fromString(contractId))
     .setGas(READ_ROOT_GAS)
-    .setFunction("getRoot", new ContractFunctionParameters().addUint256(batchId))
+    .setFunction("getRoot", new ContractFunctionParameters().addUint256(uint256Param(onChainBatchId)))
     .execute(instance);
   const root = bytes32ToRoot(result.getBytes32(0));
   // The contract returns bytes32(0) for an unknown batch id.
