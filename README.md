@@ -127,15 +127,23 @@ documented but not registered.
 
 ### Hedera anchoring and certificates
 
+Evidence batches are anchored in the `EvidenceAnchor` smart contract
+(`contracts/EvidenceAnchor.sol`, Hedera Smart Contract Service). Certificate
+hashes go to a Hedera Consensus Service topic.
+
 1. Create an operator at <https://portal.hedera.com> and fund it with test HBAR.
 2. Put `HEDERA_OPERATOR_ID` and `HEDERA_OPERATOR_KEY` in `.env.local`.
-3. Run `pnpm hedera:setup`; it prints the `HEDERA_TOPIC_ID` to add.
-4. Restart the app. The settings Integrity panel and certificate page report the
-   network, topic and sequence of each receipt.
+3. Run `pnpm contracts:build` then `pnpm contracts:deploy`; it prints the
+   `HEDERA_CONTRACT_ID` to add. Evidence batches now call `submitRoot`.
+4. Optionally run `pnpm hedera:setup`; it prints the `HEDERA_TOPIC_ID` used for
+   certificate hashes.
+5. Restart the app. The settings Integrity panel reports the active provider,
+   contract id and transaction; the certificate page reports topic and sequence.
 
-Without all three variables the deterministic **local** adapter is used and every
-batch is labelled `local (not on-chain)`. The app never claims a confirmation it
-did not observe: `confirmed` requires a receipt with a topic sequence number.
+Provider precedence is contract → consensus topic → deterministic **local**
+adapter, which labels every batch `local (not on-chain)`. The app never claims a
+confirmation it did not observe: a contract anchor is `confirmed` only after
+`submitRoot` succeeds and `getRoot` reads the root back.
 
 Certificates are Ed25519-signed regardless of Hedera. Their public key is at
 `/api/certificates/key`, so a downloaded certificate can be verified offline.
@@ -145,7 +153,7 @@ See [docs/HEDERA.md](docs/HEDERA.md) and [docs/CERTIFICATES.md](docs/CERTIFICATE
 
 ```bash
 pnpm typecheck      # passes
-pnpm test           # 40 unit tests: scoring, classification, Merkle, anchoring, certificates, HCS envelopes
+pnpm test           # 55 unit tests: scoring, classification, Merkle, anchoring, certificates, HCS envelopes, contract
 pnpm build          # passes
 pnpm extension:build
 ```
@@ -204,8 +212,9 @@ Stated, not hidden:
 - Domain verification for public profiles is not implemented; README icons and
   names are placeholders.
 - Hedera anchoring is testnet-ready but **unverified here**: no operator
-  credentials exist in this environment, so the first real HCS submission has not
-  been executed. Local anchoring is not on-chain.
+  credentials exist in this environment, so the contract has not been deployed
+  and no real `submitRoot` call or HCS submission has been executed. Local
+  anchoring is not on-chain. The contract is unaudited and has no upgrade proxy.
 - Certificates are JSON, not PDFs, and are not W3C Verifiable Credentials.
   Revocation is modelled in the schema but has no endpoint or UI.
 - The generated certificate signing key lives in the database when

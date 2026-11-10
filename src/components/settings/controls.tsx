@@ -456,6 +456,7 @@ export interface AnchorView {
   topicId: string | null;
   sequenceNumber: number | null;
   consensusTimestamp: string | null;
+  contractId: string | null;
   commitments: string[];
   createdAt: string;
 }
@@ -463,14 +464,18 @@ export interface AnchorView {
 export function AnchorControls({
   anchors,
   configured,
+  provider,
   network,
   topicId,
+  contractId,
   explorerBase,
 }: {
   anchors: AnchorView[];
   configured: boolean;
+  provider: string;
   network: string;
   topicId: string | null;
+  contractId: string | null;
   explorerBase: string;
 }) {
   const router = useRouter();
@@ -541,7 +546,9 @@ export function AnchorControls({
         </Button>
         <span className="text-[0.6875rem] text-muted">
           {configured
-            ? `Hedera ${network} consensus service · topic ${topicId ?? "missing"}`
+            ? provider === "hedera-contract"
+              ? `Hedera ${network} · EvidenceAnchor contract ${contractId ?? "missing"}`
+              : `Hedera ${network} consensus service · topic ${topicId ?? "missing"}`
             : "Hedera is not configured — batches are local commitments, not on-chain."}
         </span>
       </div>
@@ -583,6 +590,20 @@ export function AnchorControls({
                   {anchor.txRef ? (
                     <p className="mt-0.5 break-all font-mono text-[0.625rem] text-muted">
                       ref {anchor.txRef}
+                    </p>
+                  ) : null}
+                  {anchor.contractId ? (
+                    <p className="mt-0.5 text-[0.625rem] text-muted">
+                      EvidenceAnchor contract {anchor.contractId} · batch {anchor.batchId}
+                      {anchor.consensusTimestamp ? ` · ${anchor.consensusTimestamp}` : ""}{" "}
+                      <a
+                        href={`${explorerBase}/contract/${anchor.contractId}`}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="text-primary underline underline-offset-2"
+                      >
+                        HashScan
+                      </a>
                     </p>
                   ) : null}
                   {anchor.topicId && anchor.sequenceNumber !== null ? (

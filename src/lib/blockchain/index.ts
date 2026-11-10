@@ -7,8 +7,14 @@ import {
 import { commitmentOf, unanchoredEvidence } from "@/lib/integrity/anchoring";
 import { createAnchor, listEvidence, listAnchors, findAnchor } from "@/lib/db/queries";
 import type { Anchor } from "@/lib/domain/types";
-import { hederaStatus, hederaReady, topicExplorerUrl } from "@/lib/hedera/config";
+import { hederaContractReady, hederaReady, hederaStatus, topicExplorerUrl } from "@/lib/hedera/config";
 import { buildAnchorEnvelope, readMirrorMessage, submitAnchorEnvelope } from "@/lib/hedera/hcs";
+import {
+  contractExplorerUrl,
+  readAnchorRoot,
+  submitRootOnContract,
+  transactionExplorerUrl,
+} from "@/lib/hedera/contract";
 
 export interface AnchorSubmission {
   status: Anchor["status"];
@@ -17,6 +23,7 @@ export interface AnchorSubmission {
   topicId: string | null;
   sequenceNumber: number | null;
   consensusTimestamp: string | null;
+  contractId: string | null;
 }
 
 export interface AnchorProvider {
@@ -47,15 +54,43 @@ export const localProvider: AnchorProvider = {
       topicId: null,
       sequenceNumber: null,
       consensusTimestamp: null,
+      contractId: null,
     };
   },
 };
 
 /**
- * Hedera Consensus Service adapter. Returns only after consensus, so status
- * `confirmed` means the network ordered the message, not that it was submitted.
- * A failure throws: no anchor row is written for a transaction that did not
- * reach consensus.
+ * Smart contract adapter (Hedera Smart Contract Service).
+ *
+ * Calls `submitRoot(bytes32 root, uint256 batchId)` on the deployed
+ * EvidenceAnchor contract. `confirmed` means the call returned SUCCESS and a
+ * read-back returned the submitted root; the receipt alone is not enough.
+ * A failure throws, so no anchor row is written for a call that did not land.
+ */
+export const hederaContractProvider: AnchorProvider = {
+  id: "hedera-contract",
+  network: `hedera-${hederaStatus().network}`,
+  get configured() {
+    return hederaContractReady();
+  },
+  async submit(input) {
+    const receipt = await submitRootOnContract({ root: input.root, batchId: input.batchId });
+    return {
+      status: "confirmed",
+      txRef: receipt.transactionId,
+      network: `hedera-${hederaStatus().network}`,
+      topicId: null,
+      sequenceNumber: null,
+      consensusTimestamp: receipt.consensusTimestamp,
+      contractId: receipt.contractId,
+    };
+  },
+};
+
+/**
+ * Hedera Consensus Service adapter, used for evidence batches when no contract
+ * is configured (and for certificate hashes elsewhere). Returns only after
+ * consensus, so status `confirmed` means the network ordered the message.
  */
 export const hederaProvider: AnchorProvider = {
   id: "hedera-hcs",
@@ -78,25 +113,51 @@ export const hederaProvider: AnchorProvider = {
       topicId: receipt.topicId,
       sequenceNumber: receipt.sequenceNumber,
       consensusTimestamp: receipt.consensusTimestamp,
+      contractId: null,
     };
   },
 };
 
+/**
+ * Provider preference, kept pure so the precedence is testable without a
+ * network: contract first, then consensus, then the local adapter.
+ */
+export function chooseProviderId(input: {
+  contractReady: boolean;
+  consensusReady: boolean;
+}): "hedera-contract" | "hedera-hcs" | "local" {
+  if (input.contractReady) return "hedera-contract";
+  if (input.consensusReady) return "hedera-hcs";
+  return "local";
+}
+
 export function resolveProvider(): AnchorProvider {
-  return hederaReady() ? hederaProvider : localProvider;
+  const id = chooseProviderId({
+    contractReady: hederaContractReady(),
+    consensusReady: hederaReady(),
+  });
+  if (id === "hedera-contract") return hederaContractProvider;
+  if (id === "hedera-hcs") return hederaProvider;
+  return localProvider;
 }
 
 export function providerStatus() {
   const status = hederaStatus();
   const provider = resolveProvider();
+  const statement =
+    provider.id === "hedera-contract"
+      ? `Merkle roots are submitted to the EvidenceAnchor contract ${status.contractId} on Hedera ${status.network} and recorded only after the call succeeds and the stored root reads back.`
+      : provider.id === "hedera-hcs"
+        ? `No contract is configured, so Merkle roots are submitted to Hedera ${status.network} consensus and recorded after the network returns a sequence number.`
+        : "Hedera is not configured, so anchors are deterministic local commitments. They are not on a public network.";
   return {
     provider: provider.id,
     network: provider.network,
     configured: provider.configured,
+    contractId: status.contractId,
+    contractUrl: status.contractId ? contractExplorerUrl(status.contractId) : null,
     hedera: status,
-    statement: provider.configured
-      ? `Merkle roots are submitted to Hedera ${status.network} consensus service and recorded after the network returns a sequence number.`
-      : "Hedera is not configured, so anchors are deterministic local commitments. They are not on a public network.",
+    statement,
   };
 }
 
@@ -136,6 +197,7 @@ export async function anchorEvidence(userId: string): Promise<{
     topicId: submission.topicId,
     sequenceNumber: submission.sequenceNumber,
     consensusTimestamp: submission.consensusTimestamp,
+    contractId: submission.contractId,
   });
 
   return { anchor, alreadyAnchored: existing.length };
@@ -171,28 +233,64 @@ export function verifyInclusion(
 }
 
 /**
- * Independently re-read the anchored message from a public mirror node and
- * compare it with the stored root. Read-only; a mirror node outage is reported
- * as unverified, never as failure of the anchor itself.
+ * Independently re-read the anchor from the network and compare it with the
+ * stored root. Read-only; an unreachable network is reported as unverified,
+ * never as failure of the anchor itself.
+ *
+ * Contract anchors are read through `getRoot(batchId)`; consensus anchors
+ * through the public mirror node. The two paths differ because the networks
+ * store different things — a contract slot versus a topic message.
  */
-export async function verifyAnchorOnMirror(
+export async function verifyAnchorOnChain(
   userId: string,
   batchId: number,
 ): Promise<{
   checked: boolean;
   matches: boolean;
+  via: "contract" | "consensus" | null;
   reason: string;
   consensusTimestamp: string | null;
 }> {
   const anchor = findAnchor(userId, batchId);
   if (!anchor) {
-    return { checked: false, matches: false, reason: "No batch with that id.", consensusTimestamp: null };
+    return {
+      checked: false,
+      matches: false,
+      via: null,
+      reason: "No batch with that id.",
+      consensusTimestamp: null,
+    };
   }
+
+  if (anchor.provider === "hedera-contract" && anchor.contractId) {
+    const read = await readAnchorRoot(anchor.contractId, anchor.batchId);
+    if (!read.root) {
+      return {
+        checked: false,
+        matches: false,
+        via: "contract",
+        reason: read.reason,
+        consensusTimestamp: anchor.consensusTimestamp,
+      };
+    }
+    const matches = read.root === anchor.merkleRoot;
+    return {
+      checked: true,
+      matches,
+      via: "contract",
+      reason: matches
+        ? `Contract ${anchor.contractId} returns the stored Merkle root for batch ${anchor.batchId}.`
+        : "The contract returns a different root than the stored anchor.",
+      consensusTimestamp: anchor.consensusTimestamp,
+    };
+  }
+
   if (!anchor.topicId || anchor.sequenceNumber === null) {
     return {
       checked: false,
       matches: false,
-      reason: "This batch has no Hedera topic message to check.",
+      via: null,
+      reason: "This batch has no on-chain anchor to check.",
       consensusTimestamp: null,
     };
   }
@@ -201,6 +299,7 @@ export async function verifyAnchorOnMirror(
     return {
       checked: false,
       matches: false,
+      via: "consensus",
       reason: "The mirror node could not be reached or returned no message. The anchor is unchanged.",
       consensusTimestamp: null,
     };
@@ -211,6 +310,7 @@ export async function verifyAnchorOnMirror(
     return {
       checked: true,
       matches,
+      via: "consensus",
       reason: matches
         ? "The mirror node message matches the stored Merkle root and batch id."
         : "The mirror node message does not match the stored anchor.",
@@ -220,6 +320,7 @@ export async function verifyAnchorOnMirror(
     return {
       checked: true,
       matches: false,
+      via: "consensus",
       reason: "The mirrored message was not the expected JSON envelope.",
       consensusTimestamp: message.consensusTimestamp || null,
     };
@@ -227,7 +328,11 @@ export async function verifyAnchorOnMirror(
 }
 
 export function explorerUrlFor(anchor: Anchor): string | null {
+  if (anchor.contractId) {
+    return anchor.txRef
+      ? transactionExplorerUrl(anchor.txRef)
+      : contractExplorerUrl(anchor.contractId);
+  }
   if (!anchor.topicId) return null;
   return topicExplorerUrl(anchor.topicId, anchor.sequenceNumber);
 }
-

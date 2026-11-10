@@ -1,9 +1,16 @@
 /**
  * Hedera configuration state.
  *
- * The integration is only reported as configured when an operator, its key and
- * a topic id are all present. A partial configuration is a *not configured*
- * state with the missing variable names exposed — never a simulated connection.
+ * Two capabilities are reported separately because they are not the same thing:
+ *
+ * - `contractConfigured` — the deployed `EvidenceAnchor` contract, used to
+ *   anchor evidence batches. This is the primary integrity path.
+ * - `configured` — the consensus-service topic, used to anchor certificate
+ *   hashes. Unchanged meaning so the certificate and admin surfaces keep
+ *   telling the truth about what is actually anchored.
+ *
+ * A partial configuration is a *not configured* state with the missing variable
+ * names exposed — never a simulated connection.
  */
 
 import { PrivateKey } from "@hashgraph/sdk";
@@ -12,11 +19,18 @@ import { env } from "@/lib/env";
 export type HederaNetwork = "mainnet" | "testnet" | "previewnet";
 
 export interface HederaStatus {
+  /** Consensus-service (certificate) anchoring is fully configured. */
   configured: boolean;
+  /** Smart-contract (evidence batch) anchoring is fully configured. */
+  contractConfigured: boolean;
   network: HederaNetwork;
   operatorId: string | null;
   topicId: string | null;
+  contractId: string | null;
+  /** Variables missing for consensus anchoring. */
   missing: string[];
+  /** Variables missing for contract anchoring. */
+  contractMissing: string[];
   reason: string;
   explorerBase: string;
 }
@@ -33,23 +47,39 @@ export function hederaNetwork(): HederaNetwork {
 }
 
 export function hederaStatus(): HederaStatus {
-  const missing: string[] = [];
-  if (!env.hedera.operatorId) missing.push("HEDERA_OPERATOR_ID");
-  if (!env.hedera.operatorKey) missing.push("HEDERA_OPERATOR_KEY");
+  const operatorMissing: string[] = [];
+  if (!env.hedera.operatorId) operatorMissing.push("HEDERA_OPERATOR_ID");
+  if (!env.hedera.operatorKey) operatorMissing.push("HEDERA_OPERATOR_KEY");
+
+  const missing = [...operatorMissing];
   if (!env.hedera.topicId) missing.push("HEDERA_TOPIC_ID");
 
+  const contractMissing = [...operatorMissing];
+  if (!env.hedera.contractId) contractMissing.push("HEDERA_CONTRACT_ID");
+
   const network = hederaNetwork();
+  const configured = missing.length === 0;
+  const contractConfigured = contractMissing.length === 0;
+
+  const reason =
+    contractConfigured && configured
+      ? `Evidence roots are submitted to the EvidenceAnchor contract on Hedera ${network}; certificate hashes go to the configured consensus topic.`
+      : contractConfigured
+        ? `Evidence roots are submitted to the EvidenceAnchor contract on Hedera ${network}. Add ${missing.join(", ")} to also anchor certificate hashes.`
+        : configured
+          ? `Certificate hashes are anchored to Hedera ${network} consensus. Add ${contractMissing.join(", ")} to anchor evidence roots with the contract.`
+          : `Hedera anchoring is not configured. Add ${contractMissing.join(", ")} for contract anchoring and ${missing.join(", ")} for certificate hashes.`;
 
   return {
-    configured: missing.length === 0,
+    configured,
+    contractConfigured,
     network,
     operatorId: env.hedera.operatorId || null,
     topicId: env.hedera.topicId || null,
+    contractId: env.hedera.contractId || null,
     missing,
-    reason:
-      missing.length === 0
-        ? `Hedera ${network} consensus service is configured for this deployment.`
-        : `Hedera anchoring is not configured. Add ${missing.join(", ")} to enable it.`,
+    contractMissing,
+    reason,
     explorerBase: EXPLORERS[network],
   };
 }
@@ -67,14 +97,19 @@ export function operatorKey(): PrivateKey | null {
   }
 }
 
-/** True when an operator id and a parseable key exist (topic not required). */
+/** True when an operator id and a parseable key exist (no topic or contract required). */
 export function hederaOperatorReady(): boolean {
   return Boolean(env.hedera.operatorId) && operatorKey() !== null;
 }
 
-/** True when credentials exist and the key is actually parseable. */
+/** True when certificate (consensus) anchoring can actually be submitted. */
 export function hederaReady(): boolean {
   return hederaStatus().configured && hederaOperatorReady();
+}
+
+/** True when the EvidenceAnchor contract can actually be called. */
+export function hederaContractReady(): boolean {
+  return hederaStatus().contractConfigured && hederaOperatorReady();
 }
 
 export function topicExplorerUrl(topicId: string, sequence?: number | null): string {

@@ -90,16 +90,25 @@ No composite score and no cross-profession ranking exist.
 | --- | --- | --- |
 | `GET` | `/api/blockchain/anchors` | Batches with root, provider, network, status, leaf count, topic/sequence, commitments; plus `providerStatus()` |
 | `POST` | `/api/blockchain/anchors` | Batches every not-yet-anchored commitment. Rate limited to 6/hour. `201` with the anchor, or `409` if no receipt was obtained |
-| `POST` | `/api/blockchain/verify` | `{ batchId, commitment }` → `{ verified, reason, proof, disclaimer }` |
+| `POST` | `/api/blockchain/verify` | `{ batchId, commitment }` → `{ verified, reason, proof, chain, disclaimer }` |
 
-`providerStatus()` reports `provider` (`local` or `hedera-hcs`), `network`,
-`configured`, and a `hedera` object with `configured`, `network`, `topicId`,
-`missing[]`, `reason` and `explorerBase`. Missing configuration is reported as
-missing — never as a working connection.
+`providerStatus()` reports `provider` (`hedera-contract`, `hedera-hcs` or
+`local`), `network`, `configured`, `contractId`, `contractUrl`, `statement`, and
+a `hedera` object with `configured` (consensus), `contractConfigured`,
+`network`, `topicId`, `contractId`, `missing[]` (consensus),
+`contractMissing[]`, `reason` and `explorerBase`. Missing configuration is
+reported as missing — never as a working connection.
 
-A batch stores `topicId`, `sequenceNumber` and `consensusTimestamp`. `confirmed`
-is only written after a receipt with a topic sequence number; a failed HCS submit
+Contract batches store `contractId`, `txRef` and `consensusTimestamp`; consensus
+batches store `topicId`, `sequenceNumber` and `consensusTimestamp`. `confirmed`
+is only written after a contract call returns `SUCCESS` and `getRoot` reads the
+root back, or after a receipt with a topic sequence number. A failed submit
 returns `409` and writes no row.
+
+`chain` in the verification response is the network-level re-read
+(`{ checked, matches, via, reason }`, `via` is `contract`, `consensus` or null).
+It is separate from the local inclusion proof: a proof can verify while the
+network read is unavailable, and the two are reported separately.
 
 ## Certificates
 
@@ -108,6 +117,8 @@ returns `409` and writes no row.
 | `GET` | `/api/certificates` | Own certificates (summary) plus Hedera status |
 | `POST` | `/api/certificates` | `{ skillId }`. Requires an established estimate; 10/hour; `201` with payload, signature, anchor and public URL |
 | `GET` | `/api/certificates/[id]` | Public certificate payload and verification. `?download=1` sets `Content-Disposition` |
+| `POST` | `/api/certificates/[id]/revoke` | Revoke an owned certificate. Optional `{ reason }`. Owner only. |
+| `GET` | `/api/certificates/status` | Public status list of revoked certificate ids. |
 | `GET` | `/api/certificates/key` | Published Ed25519 public key (JWK), key id and algorithm |
 
 The certificate payload is **not** personalized data: it contains the subject's
@@ -129,6 +140,12 @@ still be valid; a broken signature cannot.
 | `POST` | `/api/privacy/consent` | `{ purpose, granted, scope }` → append-only consent record |
 | `GET` | `/api/settings` | Preferences, consents, leaderboard opt-in |
 | `PATCH` | `/api/settings` | Partial update of preferences |
+
+## Persona (public, signed)
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/api/profile/public/[username]/persona` | Public, signed persona manifest as Markdown. Returns `text/markdown` with a downloadable `.persona.md` file. Includes capability estimates, public evidence, anchors, active certificates, sources and an Ed25519 signature over the canonical manifest. 404 for private or unknown profiles. |
 
 ## Conventions
 

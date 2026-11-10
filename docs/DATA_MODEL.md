@@ -67,12 +67,15 @@ Append-only scoring history: `skill_id`, `estimate` (nullable), `confidence`,
 skill; history enables provenance and lets a version bump be visible.
 
 ### `blockchain_anchors`
-`batch_id` unique per user, `merkle_root`, `provider`, `network`, `tx_ref`,
+`batch_id` unique per user, `merkle_root`, `provider`
+(`hedera-contract | hedera-hcs | local`), `network`, `tx_ref`,
 `status` (`local | submitted | confirmed | failed`), `leaf_count`,
-`topic_id`, `sequence_number`, `consensus_timestamp`, `commitments` JSON array.
-The three Hedera columns are null for local batches and populated only after a
-consensus receipt. Commitments are stored so inclusion proofs can be regenerated
-without rescanning evidence.
+`contract_id`, `topic_id`, `sequence_number`, `consensus_timestamp`,
+`commitments` JSON array. Contract batches populate `contract_id` and `tx_ref`;
+consensus batches populate `topic_id` and `sequence_number`; both are null for
+local batches. Values are only written after the network receipt (and, for the
+contract, a read-back of the stored root). Commitments are stored so inclusion
+proofs can be regenerated without rescanning evidence.
 
 ### `certificates`
 A signed capability record. `skill_id`, `subject_username`, `payload` (canonical

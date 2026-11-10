@@ -105,6 +105,8 @@ export interface Anchor {
   topicId: string | null;
   sequenceNumber: number | null;
   consensusTimestamp: string | null;
+  /** Set when the root was submitted to the EvidenceAnchor smart contract. */
+  contractId: string | null;
   commitments: string[];
   createdAt: string;
 }
@@ -119,6 +121,8 @@ export interface Certificate {
   signature: string;
   keyId: string;
   status: "active" | "revoked";
+  revokedAt: string | null;
+  revocationReason: string | null;
   anchorNetwork: string | null;
   anchorTopicId: string | null;
   anchorSequence: number | null;

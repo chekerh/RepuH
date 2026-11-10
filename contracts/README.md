@@ -1,39 +1,60 @@
 # Contracts
 
-`EvidenceAnchor.sol` is the minimal anchoring contract described in the
-specification: `submitRoot(bytes32 root, uint256 batchId)`, `getRoot(uint256)`
-and a root-existence check, restricted to an authorised anchoring account, with
-duplicate batch ids rejected.
+`EvidenceAnchor.sol` is the anchoring contract used by the application: a Merkle
+root per batch id, submitted by an authorised `anchorer`, with duplicate batch
+ids rejected.
+
+```solidity
+submitRoot(bytes32 root, uint256 batchId) external onlyAnchorer
+getRoot(uint256 batchId) external view returns (bytes32)
+rootExists(uint256 batchId) external view returns (bool)
+setAnchorer(address next) external onlyOwner
+```
 
 ## Status
 
-- **Not deployed.** No mainnet deployment is part of this MVP.
+- **Compiled by this repository.** `pnpm contracts:build` runs solc 0.8.26 with
+  the optimizer on and `evmVersion: london`, and writes
+  `artifacts/EvidenceAnchor.json` (ABI, bytecode, deployed bytecode, method
+  identifiers, source SHA-256). The artifact is committed.
+- **Used by the application** when `HEDERA_CONTRACT_ID` is set: evidence batches
+  are submitted through `src/lib/hedera/contract.ts`, which calls `submitRoot`
+  and then reads the root back with `getRoot` before recording `confirmed`.
+- **Deployable but not deployed from here.** `pnpm contracts:deploy` creates the
+  contract with `ContractCreateFlow` and prints the contract id.
 - **Not audited.** Do not use with real value or production commitments.
-- **Not compiled by this repository's CI.** Foundry/Hardhat are not installed;
-  the application's anchoring path uses the deterministic local adapter in
-  `src/lib/integrity` and `src/lib/blockchain`.
+
+There is no upgrade proxy. A new deployment is a new contract id; roots stored
+at the previous id stay readable and are never migrated or rewritten.
 
 ## What goes on-chain
 
-Only a 32-byte Merkle root per batch. Commitments are SHA-256 hashes over a
-canonical structure containing a hash version, an evidence id, the signal, the
+Only a 32-byte Merkle root and the batch id. Commitments are SHA-256 hashes over
+a canonical structure containing a hash version, an evidence id, the signal, the
 timestamp and a content digest. The input excludes names, email addresses, skill
 estimates and project identifiers.
 
-## How to exercise it locally
+## Build and deploy
 
 ```bash
-# with Foundry installed
-forge init --force --no-git .   # not required by the app
-forge build contracts/EvidenceAnchor.sol
+pnpm contracts:build    # compile source → artifacts/EvidenceAnchor.json
+pnpm contracts:deploy   # requires HEDERA_OPERATOR_ID / HEDERA_OPERATOR_KEY
 ```
 
-If you wire a real adapter, the application expects:
+Deployment prints:
 
-```ts
-interface AnchorProvider {
-  submit(root: string, batchId: number): Promise<{ status: AnchorStatus; txRef: string | null }>;
-}
+```text
+HEDERA_CONTRACT_ID=0.0.xxxxxxx
 ```
 
-and must leave every unverified state labelled as such.
+Add it to `.env.local` and restart the app. `HEDERA_NETWORK` selects the
+network; testnet and previewnet are the supported defaults, mainnet needs a
+deliberate decision.
+
+## Verifying the deployed code
+
+`tests/contract.test.ts` recomputes the source SHA-256 and compares it with the
+artifact, and pins the function selectors (`submitRoot(bytes32,uint256)` →
+`5e4c087d`, `getRoot(uint256)` → `9b24b3b0`). To compare a deployment with this
+source, compare the deployed bytecode from the mirror node with
+`artifacts/EvidenceAnchor.json`'s `deployedBytecode`.

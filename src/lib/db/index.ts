@@ -28,6 +28,9 @@ function createConnection(): Db {
   ensureColumn(db, "blockchain_anchors", "topic_id", "TEXT");
   ensureColumn(db, "blockchain_anchors", "sequence_number", "INTEGER");
   ensureColumn(db, "blockchain_anchors", "consensus_timestamp", "TEXT");
+  ensureColumn(db, "blockchain_anchors", "contract_id", "TEXT");
+  ensureColumn(db, "certificates", "revoked_at", "TEXT");
+  ensureColumn(db, "certificates", "revocation_reason", "TEXT");
   db.prepare(
     "INSERT INTO schema_meta (key, value) VALUES ('schema_version', '1') ON CONFLICT(key) DO UPDATE SET value = COALESCE(schema_meta.value, excluded.value)",
   ).run();
