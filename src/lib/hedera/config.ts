@@ -96,12 +96,17 @@ export function hederaStatus(): HederaStatus {
 
 /**
  * Parse the operator key without ever returning it in an API response.
- * Hedera accepts ED25519 and ECDSA (secp256k1) keys; the SDK decides by format.
+ * Raw keys use ECDSA for the portal operator; DER keys retain their encoded algorithm.
  */
 export function operatorKey(): PrivateKey | null {
   if (!env.hedera.operatorKey) return null;
   try {
-    return PrivateKey.fromString(env.hedera.operatorKey);
+    // Raw portal keys are ambiguous: select ECDSA explicitly for this operator.
+    // DER keys encode their algorithm and must retain that information.
+    const key = env.hedera.operatorKey.trim();
+    return /^(0x)?[a-fA-F0-9]{64}$/.test(key)
+      ? PrivateKey.fromStringECDSA(key.replace(/^0x/, ""))
+      : PrivateKey.fromStringDer(key);
   } catch {
     return null;
   }
