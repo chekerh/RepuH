@@ -8,14 +8,14 @@ const ROOT = '/';
 const EMAIL = `qa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.test`;
 const DISPLAY = 'Quality Runner';
 // Must satisfy the wizard's username rule: /^[a-z0-9][a-z0-9_-]{2,29}$/ (min 3 chars).
-const USERNAME = 'qa-runner';
+const USERNAME = `qa-runner-${Math.random().toString(36).slice(2, 8)}`;
 const PASSWORD = 'qapassword-1';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-// The landing shows a fixed boot overlay while the hero lattice paints; every
+// The landing shows a fixed boot overlay while the hero globe paints; every
 // flow that starts on a fresh landing load must wait for it to fade out. A
 // no-op once the hero is ready.
 async function ensureBootFaded(page: Page) {
@@ -39,8 +39,8 @@ async function register(page: Page, opts?: { username?: string; headline?: strin
   // The suite shares one deterministic account, so later tests find it already
   // registered: the form answers with an alert instead of navigating. Sign in
   // instead — the result is the same account, whatever the first attempt did.
-  await page.waitForURL(/\/(dashboard|onboarding)$/, { timeout: 15_000 }).catch(() => null);
-  if (!/\/(dashboard|onboarding)$/.test(new URL(page.url()).pathname)) {
+  await page.waitForURL(/\/(dashboard|assistant|onboarding)$/, { timeout: 15_000 }).catch(() => null);
+  if (!/\/(dashboard|assistant|onboarding)$/.test(new URL(page.url()).pathname)) {
     await signIn(page);
     await page.waitForURL(/\/(dashboard|onboarding)$/, { timeout: 15_000 });
   }
@@ -49,65 +49,32 @@ async function register(page: Page, opts?: { username?: string; headline?: strin
   // already completed onboarding and lands directly on the dashboard.
   if (new URL(page.url()).pathname === '/onboarding') {
     await driveOnboarding(page, { username: opts?.username ?? USERNAME, headline: opts?.headline });
-    await page.waitForURL(/\/dashboard$/, { timeout: 15_000 });
+    await page.waitForURL(/\/(dashboard|assistant)$/, { timeout: 15_000 });
   }
   return page.url();
 }
 
+async function sendChat(page: Page, text: string) {
+  const input = page.getByLabel(/message/i);
+  await expect(input).toBeVisible({ timeout: 10_000 });
+  await input.fill(text);
+  await input.press('Enter');
+  await page.waitForTimeout(150);
+}
+
 async function driveOnboarding(page: Page, opts: { username?: string; headline?: string }) {
-  let stepIndex = 0;
-  while (true) {
-    const heading = page.getByRole('heading', { level: 1 }).first();
-    await expect(heading).toBeVisible({ timeout: 5_000 });
-
-    const text = await heading.textContent();
-    if (!text) break;
-
-    // Step 0 gates on a consent checkbox; any disabled Continue is enabled by
-    // ticking it, so do this before branching on the step.
-    const consent = page.getByLabel(/I understand that RepuH observes/i);
-    if (await consent.isVisible({ timeout: 300 }).catch(() => false)) {
-      if (!(await consent.isChecked())) await consent.check();
-    }
-
-    if (text.includes('display name') || text.includes('basic details')) {
-      if (opts.headline) {
-        const h = page.getByLabel(/headline/i);
-        if (await h.isVisible().catch(() => false)) await h.fill(opts.headline);
-      }
-      await page.getByRole('button', { name: /continue/i }).click();
-      stepIndex++;
-    } else if (text.includes('username') || text.includes('web address')) {
-      const u = page.getByLabel(/username/i);
-      if (await u.isVisible().catch(() => false)) {
-        if (opts.username) await u.fill(opts.username);
-      }
-      await page.getByRole('button', { name: /continue/i }).click();
-      stepIndex++;
-    } else if (text.includes('connect') || text.includes('github')) {
-      await page.getByRole('button', { name: /continue/i }).click();
-      stepIndex++;
-    } else if (text.includes('who can see') || text.includes('visibility')) {
-      await page.getByRole('button', { name: /continue/i }).click();
-      stepIndex++;
-    } else if (text.includes('review')) {
-      await page.getByRole('button', { name: /enter repuh/i }).click();
-      break;
-    } else {
-      const cont = page.getByRole('button', { name: /continue/i }).first();
-      if (await cont.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await cont.click();
-        stepIndex++;
-      } else {
-        const fin = page.getByRole('button', { name: /enter repuh/i }).first();
-        if (await fin.isVisible().catch(() => false)) {
-          await fin.click();
-          break;
-        }
-        break;
-      }
-    }
-  }
+  await sendChat(page, 'I understand');
+  await sendChat(page, 'skip'); // display name
+  await sendChat(page, opts.username ?? 'skip');
+  await sendChat(page, opts.headline ?? 'skip'); // headline
+  await sendChat(page, 'skip'); // country
+  await sendChat(page, 'skip'); // bio
+  await sendChat(page, 'skip'); // specialization
+  await sendChat(page, 'none'); // evidence source
+  await sendChat(page, 'private'); // visibility
+  await sendChat(page, 'no'); // leaderboards
+  await sendChat(page, 'save'); // finish
+  await page.waitForURL(/\/(dashboard|assistant)$/, { timeout: 15_000 });
 }
 
 async function signIn(page: Page) {
@@ -140,17 +107,17 @@ test.describe('RepuH — MVP UX/UI and interaction suite', () => {
     await expect(page.getByText(/certificate/i)).toBeVisible();
     await expect(page.getByText(/Hedera/i)).toBeVisible();
 
-    // After the boot overlay fades the hero effect is mounted. The threeui
-    // ConstellationField paints inside a sandboxed srcdoc iframe, so the
-    // observable element is the iframe — no canvas exists in the host document.
-    await expect(page.locator('.threeui-mount iframe').first()).toBeAttached({ timeout: 8_000 });
+    // After the boot overlay fades the hero effect is mounted. The landing
+    // hero is the orb gallery: a sandboxed srcdoc iframe, so the observable
+    // element is that iframe — no canvas exists in the host document.
+    await expect(page.locator('.orb-gallery iframe').first()).toBeAttached({ timeout: 8_000 });
     expect(errors).toEqual([]);
   });
 
   test('create account: validation surfaces and account is created', async ({ page }) => {
     await register(page, { headline: 'Test engineer' });
     const url = page.url();
-    expect(url.includes('/dashboard') || url.includes('/onboarding')).toBeTruthy();
+    expect(url.includes('/dashboard') || url.includes('/assistant') || url.includes('/onboarding')).toBeTruthy();
   });
 
   test('login with wrong password returns a readable error', async ({ page }) => {
@@ -175,7 +142,7 @@ test.describe('RepuH — MVP UX/UI and interaction suite', () => {
 
   test('full authenticated journey: dashboard -> fingerprint -> activity -> evidence -> certificates', async ({ page }) => {
     await register(page, { headline: 'QA engineer' });
-    await page.waitForURL(/\/dashboard/, { timeout: 12_000 });
+    await page.waitForURL(/\/(dashboard|assistant)/, { timeout: 12_000 });
 
     // Desktop uses the sidebar links. On narrow viewports the mobile bottom
     // nav carries the same seven destinations, and driving it keeps the test
@@ -207,7 +174,7 @@ test.describe('RepuH — MVP UX/UI and interaction suite', () => {
 
   test('sign out clears the session and returns to the landing page', async ({ page }) => {
     await register(page, { headline: 'Signed out' });
-    await page.waitForURL(/\/dashboard/, { timeout: 12_000 });
+    await page.waitForURL(/\/(dashboard|assistant)/, { timeout: 12_000 });
 
     // /settings hosts the sign-out control for every breakpoint; the sidebar
     // link that leads there is desktop-only, so navigate directly.
@@ -224,7 +191,7 @@ test.describe('RepuH — MVP UX/UI and interaction suite', () => {
 
   test('settings preference changes persist and reflect in the UI', async ({ page }) => {
     await register(page, { headline: 'Preferences' });
-    await page.waitForURL(/\/dashboard/, { timeout: 12_000 });
+    await page.waitForURL(/\/(dashboard|assistant)/, { timeout: 12_000 });
 
     // /settings works for every breakpoint (the sidebar link is desktop-only).
     await page.goto('/settings');
@@ -246,7 +213,7 @@ test.describe('RepuH — MVP UX/UI and interaction suite', () => {
   test('mobile viewport: bottom nav and no horizontal overflow', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await register(page, { headline: 'Mobile' });
-    await page.waitForURL(/\/dashboard/, { timeout: 12_000 });
+    await page.waitForURL(/\/(dashboard|assistant)/, { timeout: 12_000 });
 
     const mobileNav = page.getByRole('navigation', { name: /mobile/i }).first();
     await expect(mobileNav.getByRole('link', { name: /home/i })).toBeVisible({ timeout: 6_000 });

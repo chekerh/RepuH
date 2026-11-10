@@ -26,6 +26,7 @@
   --focus: #285bdb;
   --grid: rgba(21, 28, 44, 0.06);
   --shadow-color: 21 28 44;
+  --canvas: #05070a;
   --selection: rgba(40, 91, 219, 0.16);
 
   --radius-xs: 3px;
@@ -38,9 +39,25 @@
   --repuh-boot-tile: color-mix(in srgb, var(--surface) 88%, var(--foreground) 12%);
   --repuh-boot-edge: color-mix(in srgb, var(--foreground) 18%, transparent);
   --repuh-boot-bar: color-mix(in srgb, var(--foreground) 32%, transparent);
+
+  /* Developer console rail. Deliberately dark in both themes so the admin
+     surface reads as a separate instrument rather than the product UI. */
+  --console: #0b1120;
+  --console-raised: #141d30;
+  --console-foreground: #edf2fa;
+  --console-muted: #93a1b8;
+  --console-line: rgba(237, 242, 250, 0.1);
+  --console-accent: #8aa8ff;
 }
 
 [data-theme="dark"] {
+  --console: #070b12;
+  --console-raised: #101826;
+  --console-foreground: #e8eef8;
+  --console-muted: #8f9cb2;
+  --console-line: rgba(232, 238, 248, 0.09);
+  --console-accent: #9db6ff;
+
   --background: #0b0f16;
   --surface: #111826;
   --surface-muted: #18202f;
@@ -80,6 +97,12 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-console: var(--console);
+  --color-console-raised: var(--console-raised);
+  --color-console-foreground: var(--console-foreground);
+  --color-console-muted: var(--console-muted);
+  --color-console-line: var(--console-line);
+  --color-console-accent: var(--console-accent);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-instrument), ui-serif, Georgia, serif;
@@ -99,6 +122,12 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+  }
+
+  /* Anchor targets clear the 4rem sticky header. Without this, "How it works"
+     lands with the section heading hidden underneath the header. */
+  :where(section[id], h2[id], h3[id], [id="main"]) {
+    scroll-margin-top: 5rem;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -223,9 +252,12 @@
     background-size: 56px 56px;
   }
 
-  /* Long-form documentation surface. Editorial measure, hairline structure. */
+  /* Long-form documentation surface. Editorial measure, hairline structure.
+     break-word keeps a long code token or URL from widening the whole grid
+     column on a narrow screen. */
   .doc {
     max-width: 68ch;
+    overflow-wrap: break-word;
   }
   .doc > * + * {
     margin-top: 1rem;
@@ -273,6 +305,7 @@
     padding: 0.1em 0.35em;
     border-radius: 3px;
     color: var(--foreground);
+    overflow-wrap: anywhere;
   }
   .doc a {
     color: var(--primary);
@@ -313,12 +346,13 @@
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px) scale(0.98);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+}
+
+.rise {
+  animation: rise 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(min(var(--i, 0), 10) * 45ms);
 }
 
 @keyframes sheen {
@@ -331,5 +365,12 @@
 }
 .animate-rise {
   animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.press {
+  transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.press:active {
+  transform: scale(0.97);
 }
 

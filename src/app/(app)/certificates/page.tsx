@@ -4,6 +4,7 @@ import { ArrowUpRight, Award, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui";
 import { CertificateIssuer } from "@/components/certificates/issuer";
+import { RevokeCertificateButton } from "@/components/certificates/revoke";
 import { requireOnboarded } from "@/lib/auth/session";
 import { computeFingerprint } from "@/lib/services/ingest";
 import { SKILLS_BY_ID } from "@/lib/ontology";
@@ -138,12 +139,15 @@ export default async function CertificatesPage() {
                       : ""}
                   </p>
                 </div>
-                <Link
-                  href={`/certificate/${certificate.id}`}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                >
-                  Open <ArrowUpRight size={12} />
-                </Link>
+                <div className="flex items-center gap-3">
+                  {certificate.status === "active" ? <RevokeCertificateButton certificateId={certificate.id} /> : null}
+                  <Link
+                    href={`/certificate/${certificate.id}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    Open <ArrowUpRight size={12} />
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

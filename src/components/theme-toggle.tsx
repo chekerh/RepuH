@@ -22,6 +22,7 @@ export function applyTheme(next: Theme) {
   document.documentElement.dataset.theme = resolved;
   if (next === "system") localStorage.removeItem("repuh-theme");
   else localStorage.setItem("repuh-theme", next);
+  window.dispatchEvent(new CustomEvent("repuh-theme", { detail: next }));
 }
 
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
@@ -33,6 +34,12 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
     // server markup identical and avoids a hydration mismatch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(stored === "light" || stored === "dark" ? stored : "system");
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<Theme>).detail;
+      if (detail === "light" || detail === "dark" || detail === "system") setTheme(detail);
+    };
+    window.addEventListener("repuh-theme", handler);
+    return () => window.removeEventListener("repuh-theme", handler);
   }, []);
 
   if (compact) {

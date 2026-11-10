@@ -1,0 +1,207 @@
+{
+  "contractName": "EvidenceAnchor",
+  "source": "contracts/EvidenceAnchor.sol",
+  "sourceSha256": "9ae676a6b82d4064788052fcc7f5deede17714648a7776af6cd4ea942a47fe26",
+  "compiler": "0.8.26+commit.8a97fa7a.Emscripten.clang",
+  "evmVersion": "london",
+  "optimizer": {
+    "enabled": true,
+    "runs": 200
+  },
+  "abi": [
+    {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "DuplicateBatch",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidRoot",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotAnchorer",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotOwner",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previous",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "next",
+          "type": "address"
+        }
+      ],
+      "name": "AnchorerChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "batchId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "root",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "submitter",
+          "type": "address"
+        }
+      ],
+      "name": "RootSubmitted",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "batchId",
+          "type": "uint256"
+        }
+      ],
+      "name": "anchoredAt",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "anchorer",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "batchId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getRoot",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "batchId",
+          "type": "uint256"
+        }
+      ],
+      "name": "rootExists",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "next",
+          "type": "address"
+        }
+      ],
+      "name": "setAnchorer",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "root",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "batchId",
+          "type": "uint256"
+        }
+      ],
+      "name": "submitRoot",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b50600180546001600160a01b03199081163390811790925560008054909116909117905561037e806100426000396000f3fe608060405234801561001057600080fd5b506004361061007d5760003560e01c806376a5cef31161005b57806376a5cef3146100dd578063846099211461010f5780638da5cb5b1461013a5780639b24b3b01461014d57600080fd5b80630e0ab0a114610082578063270d4a07146100975780635e4c087d146100ca575b600080fd5b6100956100903660046102dd565b61016d565b005b6100b76100a536600461030d565b60036020526000908152604090205481565b6040519081526020015b60405180910390f35b6100956100d8366004610326565b61021a565b6100ff6100eb36600461030d565b600090815260026020526040902054151590565b60405190151581526020016100c1565b600054610122906001600160a01b031681565b6040516001600160a01b0390911681526020016100c1565b600154610122906001600160a01b031681565b6100b761015b36600461030d565b60009081526002602052604090205490565b6001546001600160a01b03163314610198576040516330cd747160e01b815260040160405180910390fd5b6001600160a01b0381166101bf576040516330cd747160e01b815260040160405180910390fd5b600080546040516001600160a01b03808516939216917f69b1f79c8a6a5c0d63181c7a49453e8601d01ccd2432292c1cc65e0ac4d35bf791a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b6000546001600160a01b031633146102455760405163d46c421560e01b815260040160405180910390fd5b816102635760405163504570e360e01b815260040160405180910390fd5b6000818152600260205260409020541561029057604051631ac678e160e31b815260040160405180910390fd5b60008181526002602090815260408083208590556003909152808220429055513391849184917fba04ac6d32b33557cfb6e1ff10fbbac4d225929d862c3e2c354875649e5178f291a45050565b6000602082840312156102ef57600080fd5b81356001600160a01b038116811461030657600080fd5b9392505050565b60006020828403121561031f57600080fd5b5035919050565b6000806040838503121561033957600080fd5b5050803592602090910135915056fea2646970667358221220d4ba93340318a3dbda633430920b21fd81f5b11ada3972e2b47ab6791ffca56e64736f6c634300081a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061007d5760003560e01c806376a5cef31161005b57806376a5cef3146100dd578063846099211461010f5780638da5cb5b1461013a5780639b24b3b01461014d57600080fd5b80630e0ab0a114610082578063270d4a07146100975780635e4c087d146100ca575b600080fd5b6100956100903660046102dd565b61016d565b005b6100b76100a536600461030d565b60036020526000908152604090205481565b6040519081526020015b60405180910390f35b6100956100d8366004610326565b61021a565b6100ff6100eb36600461030d565b600090815260026020526040902054151590565b60405190151581526020016100c1565b600054610122906001600160a01b031681565b6040516001600160a01b0390911681526020016100c1565b600154610122906001600160a01b031681565b6100b761015b36600461030d565b60009081526002602052604090205490565b6001546001600160a01b03163314610198576040516330cd747160e01b815260040160405180910390fd5b6001600160a01b0381166101bf576040516330cd747160e01b815260040160405180910390fd5b600080546040516001600160a01b03808516939216917f69b1f79c8a6a5c0d63181c7a49453e8601d01ccd2432292c1cc65e0ac4d35bf791a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b6000546001600160a01b031633146102455760405163d46c421560e01b815260040160405180910390fd5b816102635760405163504570e360e01b815260040160405180910390fd5b6000818152600260205260409020541561029057604051631ac678e160e31b815260040160405180910390fd5b60008181526002602090815260408083208590556003909152808220429055513391849184917fba04ac6d32b33557cfb6e1ff10fbbac4d225929d862c3e2c354875649e5178f291a45050565b6000602082840312156102ef57600080fd5b81356001600160a01b038116811461030657600080fd5b9392505050565b60006020828403121561031f57600080fd5b5035919050565b6000806040838503121561033957600080fd5b5050803592602090910135915056fea2646970667358221220d4ba93340318a3dbda633430920b21fd81f5b11ada3972e2b47ab6791ffca56e64736f6c634300081a0033",
+  "methodIdentifiers": {
+    "anchoredAt(uint256)": "270d4a07",
+    "anchorer()": "84609921",
+    "getRoot(uint256)": "9b24b3b0",
+    "owner()": "8da5cb5b",
+    "rootExists(uint256)": "76a5cef3",
+    "setAnchorer(address)": "0e0ab0a1",
+    "submitRoot(bytes32,uint256)": "5e4c087d"
+  }
+}

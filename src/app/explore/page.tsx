@@ -41,7 +41,7 @@ export default async function ExplorePage({
       <div className="space-y-8">
         <PageHeader
           title="Explore the network"
-          description="Public professional profiles, read through a scoped projection. Only what each person chose to publish appears here; private activity, consent records and integration tokens never do."
+          description="Public profiles, read through a scoped projection. Only what each person chose to publish appears here. Private activity, consent records and integration tokens stay out."
           meta={
             <form action="/explore" method="get" className="flex max-w-md gap-2 border-t border-border pt-5">
               <label htmlFor="q" className="sr-only">

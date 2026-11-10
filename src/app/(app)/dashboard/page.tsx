@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { CapabilityLattice } from "@/components/lattice";
+import { CapabilityMark } from "@/components/capability-mark";
 import { Badge, ButtonLink, ConfidenceMeter, EmptyState } from "@/components/ui";
 import { PageHeader } from "@/components/page-header";
 import { requireOnboarded } from "@/lib/auth/session";
@@ -172,13 +172,13 @@ export default async function DashboardPage() {
                 Full fingerprint <ArrowUpRight size={12} />
               </Link>
             </div>
-            <div className="mt-3 overflow-hidden rounded-md border border-border bg-[#0b1220]">
+            <div className="mt-3 overflow-hidden rounded-md border border-border bg-[var(--canvas)]">
               <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
                 <span className="label text-white/40">Evidence-weighted</span>
                 <span className="label text-white/25">{user.profile.specialization ?? "Software engineering"}</span>
               </div>
               <div className="h-[19rem] px-1 pt-1">
-                <CapabilityLattice nodes={nodes} caption="Drag to rotate" interactive={false} />
+                <CapabilityMark nodes={nodes} />
               </div>
             </div>
           </section>

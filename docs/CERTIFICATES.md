@@ -142,11 +142,11 @@ contains the subject's display name and username even when the profile itself is
 private. Do not issue a certificate from an identity you do not want linked to
 the claim.
 
-## What is not implemented
+## Revocation
 
-- **Revocation UI.** The `status` column supports `revoked`, but no endpoint or
-  control changes it. A revocation would also need a public statement, not just a
-  database update.
+Certificates can be revoked by their issuer through `POST /api/certificates/[id]/revoke` with an optional `{ "reason" }` body. Revocation sets `status = revoked` and records `revoked_at` and `revocation_reason`; the signature remains verifiable, but verification reports the revoked state. A public status list is available at `GET /api/certificates/status`.
+
+- **Revocation UI.** Now implemented for the issuer: `POST /api/certificates/[id]/revoke` and a revoke control on the certificates page. A public revocation statement and key-history story are still missing.
 - **PDF.** The download is JSON. A PDF renderer would be presentation only and is
   not shipped.
 - **W3C Verifiable Credential envelope.** The payload is inspired by the model

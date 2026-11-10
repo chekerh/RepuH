@@ -1,0 +1,18 @@
+/* threeui mount styles — minimal subset so the ConstellationField background
+   renders inside the RepuH shell without pulling the full library CSS. */
+.threeui-mount {
+  position: relative;
+  isolation: isolate;
+}
+.threeui-mount .threeui-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #0b0f16;
+}
+.threeui-mount .threeui-background canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

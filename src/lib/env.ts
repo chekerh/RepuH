@@ -11,6 +11,7 @@ const appSecret = process.env.REPUH_APP_SECRET ?? DEV_SECRET;
 
 export const env = {
   appSecret,
+  appSecretIsFallback: appSecret === DEV_SECRET,
   isProduction: process.env.NODE_ENV === "production",
   appUrl:
     process.env.NEXT_PUBLIC_APP_URL ??
@@ -31,7 +32,9 @@ export const env = {
     operatorId: process.env.HEDERA_OPERATOR_ID ?? "",
     operatorKey: process.env.HEDERA_OPERATOR_KEY ?? "",
     topicId: process.env.HEDERA_TOPIC_ID ?? "",
-    /** Only fully configured when an operator, key and topic are all present. */
+    /** Id of the deployed EvidenceAnchor contract (Hedera Smart Contract Service). */
+    contractId: process.env.HEDERA_CONTRACT_ID ?? "",
+    /** True when the consensus-service path (operator, key and topic) is present. */
     configured: Boolean(
       process.env.HEDERA_OPERATOR_ID &&
         process.env.HEDERA_OPERATOR_KEY &&
@@ -40,6 +43,14 @@ export const env = {
   },
   /** Optional base64 PKCS#8 Ed25519 key for certificates; generated if absent. */
   certificateSigningKey: process.env.REPUH_CERT_SIGNING_KEY ?? "",
+  /**
+   * Comma-separated allowlist for the developer admin surface. An empty list
+   * disables /admin entirely (it 404s) rather than opening it to every account.
+   */
+  adminEmails: (process.env.REPUH_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean),
   openaiKey: process.env.OPENAI_API_KEY ?? "",
 } as const;
 

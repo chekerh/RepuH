@@ -978,6 +978,8 @@ export function searchPublicProfiles(query: string, limit = 24): Profile[] {
 
 export function createAnchor(input: {
   userId: string;
+  /** Per-account batch number, already decided when the root was submitted. */
+  batchId: number;
   merkleRoot: string;
   commitments: string[];
   provider: string;
@@ -987,18 +989,18 @@ export function createAnchor(input: {
   topicId?: string | null;
   sequenceNumber?: number | null;
   consensusTimestamp?: string | null;
+  contractId?: string | null;
+  contractBatchId?: string | null;
 }): Anchor {
   const db = getDb();
-  const previous = db
-    .prepare("SELECT MAX(batch_id) AS batch FROM blockchain_anchors WHERE user_id = ?")
-    .get(input.userId) as { batch: number | null };
-  const batchId = (previous.batch ?? 0) + 1;
+  const batchId = input.batchId;
   const id = newId("anc");
   db.prepare(
     `INSERT INTO blockchain_anchors
       (id, user_id, batch_id, merkle_root, provider, network, tx_ref, status, leaf_count,
-       topic_id, sequence_number, consensus_timestamp, commitments, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       topic_id, sequence_number, consensus_timestamp, contract_id, contract_batch_id,
+       commitments, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     input.userId,
@@ -1012,6 +1014,8 @@ export function createAnchor(input: {
     input.topicId ?? null,
     input.sequenceNumber ?? null,
     input.consensusTimestamp ?? null,
+    input.contractId ?? null,
+    input.contractBatchId ?? null,
     JSON.stringify(input.commitments),
     nowIso(),
   );
@@ -1028,6 +1032,8 @@ export function createAnchor(input: {
     topicId: input.topicId ?? null,
     sequenceNumber: input.sequenceNumber ?? null,
     consensusTimestamp: input.consensusTimestamp ?? null,
+    contractId: input.contractId ?? null,
+    contractBatchId: input.contractBatchId ?? null,
     commitments: input.commitments,
     createdAt: nowIso(),
   };
@@ -1049,6 +1055,8 @@ export function listAnchors(userId: string): Anchor[] {
     topic_id: string | null;
     sequence_number: number | null;
     consensus_timestamp: string | null;
+    contract_id: string | null;
+    contract_batch_id: string | null;
     commitments: string;
     created_at: string;
   }>;
@@ -1065,6 +1073,8 @@ export function listAnchors(userId: string): Anchor[] {
     topicId: row.topic_id,
     sequenceNumber: row.sequence_number,
     consensusTimestamp: row.consensus_timestamp,
+    contractId: row.contract_id,
+    contractBatchId: row.contract_batch_id,
     commitments: parseJson<string[]>(row.commitments, []),
     createdAt: row.created_at,
   }));
@@ -1082,6 +1092,8 @@ interface CertificateRow {
   signature: string;
   key_id: string;
   status: Certificate["status"];
+  revoked_at: string | null;
+  revocation_reason: string | null;
   anchor_network: string | null;
   anchor_topic_id: string | null;
   anchor_sequence: number | null;
@@ -1102,6 +1114,8 @@ function mapCertificate(row: CertificateRow): Certificate {
     signature: row.signature,
     keyId: row.key_id,
     status: row.status,
+    revokedAt: row.revoked_at,
+    revocationReason: row.revocation_reason,
     anchorNetwork: row.anchor_network,
     anchorTopicId: row.anchor_topic_id,
     anchorSequence: row.anchor_sequence,
@@ -1157,6 +1171,8 @@ export function createCertificate(input: {
   return {
     ...input,
     status: "active",
+    revokedAt: null,
+    revocationReason: null,
     createdAt,
   };
 }
@@ -1168,6 +1184,41 @@ export function listCertificates(userId: string): Certificate[] {
   return rows.map(mapCertificate);
 }
 
+export function revokeCertificate(
+  userId: string,
+  certificateId: string,
+  reason: string | null = null,
+): Certificate | null {
+  const certificate = findCertificate(certificateId);
+  if (!certificate || certificate.userId !== userId) return null;
+  if (certificate.status === "revoked") return certificate;
+
+  const changes = getDb()
+    .prepare(
+      "UPDATE certificates SET status = 'revoked', revoked_at = ?, revocation_reason = ? WHERE id = ? AND user_id = ? AND status = 'active'",
+    )
+    .run(nowIso(), reason, certificateId, userId).changes;
+
+  if (changes === 0) return null;
+  return findCertificate(certificateId);
+}
+
+export function listRevokedCertificates(): Array<{
+  id: string;
+  revokedAt: string | null;
+  reason: string | null;
+}> {
+  const rows = getDb()
+    .prepare(
+      "SELECT id, revoked_at, revocation_reason FROM certificates WHERE status = 'revoked' ORDER BY revoked_at DESC",
+    )
+    .all() as Array<{ id: string; revoked_at: string | null; revocation_reason: string | null }>;
+  return rows.map((row) => ({
+    id: row.id,
+    revokedAt: row.revoked_at,
+    reason: row.revocation_reason,
+  }));
+}
 export function findCertificate(id: string): Certificate | null {
   const row = getDb().prepare("SELECT * FROM certificates WHERE id = ?").get(id) as
     | CertificateRow

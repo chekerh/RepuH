@@ -33,7 +33,7 @@ export default async function LeaderboardsPage({
       <div className="space-y-8">
         <PageHeader
           title="Leaderboards"
-          description="Ranks are per capability and are only published where independently supported evidence exists. Followers, account age, time online, payments and endorsements are not inputs."
+          description="Ranks are per capability, published only where independently supported evidence exists. Followers, account age, time online, payments and endorsements are not inputs."
           meta={
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border pt-5 text-xs text-muted">
               <span>Eligibility: public profile, leaderboard opt-in, at least two evidence items.</span>

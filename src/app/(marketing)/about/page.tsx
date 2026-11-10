@@ -12,7 +12,7 @@ export default function AboutPage() {
       <aside className="lg:sticky lg:top-24 lg:self-start">
         <p className="label">About</p>
         <p className="mt-2 max-w-[24ch] text-[0.8125rem] leading-relaxed text-muted">
-          A professional identity platform that treats evidence as the product, not as decoration.
+          A professional identity platform where evidence is the product.
         </p>
       </aside>
 
@@ -92,8 +92,8 @@ export default function AboutPage() {
         <p>
           This is an MVP. It runs as a modular monolith with SQLite persistence behind a repository
           layer, and it documents how to move to the Supabase/Postgres target described in the
-          specification. External services that are not configured — mail delivery, GitHub OAuth,
-          hosted model inference, testnet RPC — are reported as unavailable rather than simulated.
+          specification. External services that are not configured (mail delivery, GitHub OAuth,
+          hosted model inference, testnet RPC) are reported as unavailable rather than simulated.
         </p>
         <p>
           Start with <Link href="/docs">the documentation</Link>, or{" "}

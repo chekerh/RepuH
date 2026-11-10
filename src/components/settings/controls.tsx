@@ -456,6 +456,8 @@ export interface AnchorView {
   topicId: string | null;
   sequenceNumber: number | null;
   consensusTimestamp: string | null;
+  contractId: string | null;
+  contractBatchId: string | null;
   commitments: string[];
   createdAt: string;
 }
@@ -463,20 +465,26 @@ export interface AnchorView {
 export function AnchorControls({
   anchors,
   configured,
+  provider,
   network,
   topicId,
+  contractId,
   explorerBase,
 }: {
   anchors: AnchorView[];
   configured: boolean;
+  provider: string;
   network: string;
   topicId: string | null;
+  contractId: string | null;
   explorerBase: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [verified, setVerified] = useState<Record<string, { ok: boolean; reason: string }>>({});
+  const [verified, setVerified] = useState<
+    Record<string, { ok: boolean; reason: string; chain?: string }>
+  >({});
   const [copied, setCopied] = useState<string | null>(null);
 
   async function createBatch() {
@@ -513,9 +521,19 @@ export function AnchorControls({
         }));
         return;
       }
+      const chain = payload?.chain as
+        | { checked?: boolean; matches?: boolean; via?: string; reason?: string }
+        | undefined;
+      const chainLabel = chain
+        ? chain.checked
+          ? `network re-read via ${chain.via ?? "unknown"}: ${
+              chain.matches ? "matches the stored root" : "does not match the stored root"
+            }`
+          : `network re-read unavailable: ${chain.reason ?? "no reason given"}`
+        : "network re-read was not attempted";
       setVerified((current) => ({
         ...current,
-        [commitment]: { ok: Boolean(payload.verified), reason: payload.reason },
+        [commitment]: { ok: Boolean(payload.verified), reason: payload.reason, chain: chainLabel },
       }));
     } catch {
       setError("Network error during verification.");
@@ -541,7 +559,9 @@ export function AnchorControls({
         </Button>
         <span className="text-[0.6875rem] text-muted">
           {configured
-            ? `Hedera ${network} consensus service · topic ${topicId ?? "missing"}`
+            ? provider === "hedera-contract"
+              ? `Hedera ${network} · EvidenceAnchor contract ${contractId ?? "missing"}`
+              : `Hedera ${network} consensus service · topic ${topicId ?? "missing"}`
             : "Hedera is not configured — batches are local commitments, not on-chain."}
         </span>
       </div>
@@ -583,6 +603,25 @@ export function AnchorControls({
                   {anchor.txRef ? (
                     <p className="mt-0.5 break-all font-mono text-[0.625rem] text-muted">
                       ref {anchor.txRef}
+                    </p>
+                  ) : null}
+                  {anchor.contractId ? (
+                    <p className="mt-0.5 text-[0.625rem] text-muted">
+                      EvidenceAnchor contract {anchor.contractId} · batch {anchor.batchId}
+                      {anchor.consensusTimestamp ? ` · ${anchor.consensusTimestamp}` : ""}{" "}
+                      <a
+                        href={`${explorerBase}/contract/${anchor.contractId}`}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="text-primary underline underline-offset-2"
+                      >
+                        HashScan
+                      </a>
+                    </p>
+                  ) : null}
+                  {anchor.contractBatchId ? (
+                    <p className="mt-0.5 break-all font-mono text-[0.625rem] text-muted">
+                      on-chain batch key {anchor.contractBatchId}
                     </p>
                   ) : null}
                   {anchor.topicId && anchor.sequenceNumber !== null ? (
@@ -635,6 +674,11 @@ export function AnchorControls({
                           )}
                         >
                           {verified[commitment]!.ok ? "Inclusion verified" : verified[commitment]!.reason}
+                        </span>
+                      ) : null}
+                      {verified[commitment]?.chain ? (
+                        <span className="basis-full text-[0.625rem] text-muted">
+                          {verified[commitment]!.chain}
                         </span>
                       ) : null}
                     </li>

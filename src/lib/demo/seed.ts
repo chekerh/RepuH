@@ -13,11 +13,15 @@ import {
   updatePreferences,
   upsertIntegration,
 } from "@/lib/db/queries";
-import { DEMO_PROFILES, buildDemoEvents, selfDemoSpec, type DemoProfileSpec } from "@/lib/demo/generator";
+import {
+  DEMO_PASSWORD,
+  DEMO_PROFILES,
+  buildDemoEvents,
+  selfDemoSpec,
+  type DemoProfileSpec,
+} from "@/lib/demo/generator";
 import { ingestEvent } from "@/lib/services/ingest";
 import { recomputeAndSnapshot } from "@/lib/services/ingest";
-
-export const DEMO_PASSWORD = "repuh-demo-password";
 
 function publicId() {
   return randomUUID().replace(/-/g, "").slice(0, 12);

@@ -3,10 +3,11 @@
 ## Principle
 
 Evidence stays private and off-chain. What can leave the system is a **Merkle
-root over deterministic commitments**, plus — when Hedera is configured — a
-single consensus-service message containing that root. An anchor proves a batch
-has not been altered since submission. It does **not** prove skill, employment or
-identity, and the UI says so next to every anchor.
+root over deterministic commitments**: written to the `EvidenceAnchor` contract
+(Hedera Smart Contract Service) when a contract is configured, otherwise sent as
+a single consensus-service message, otherwise kept as a local commitment. An
+anchor proves a batch has not been altered since submission. It does **not**
+prove skill, employment or identity, and the UI says so next to every anchor.
 
 For the network integration itself see [docs/HEDERA.md](HEDERA.md); for signed
 capability records see [docs/CERTIFICATES.md](CERTIFICATES.md).
@@ -52,7 +53,10 @@ and internal nodes.
 1. Loads every evidence item for the account.
 2. Drops commitments already present in an existing batch.
 3. Builds a tree over the remainder; refuses when nothing is pending.
-4. Submits the root through the resolved provider.
+4. Submits the root through the resolved provider: `submitRoot` on the
+   EvidenceAnchor contract under a key derived from the account and batch
+   ([docs/HEDERA.md](HEDERA.md)), then a `getRoot` read-back; otherwise an HCS
+   message with a consensus receipt; otherwise a local reference.
 5. Persists the anchor only after the provider returns.
 
 `batch_id` is sequential per user and unique with `user_id`.
@@ -61,16 +65,19 @@ and internal nodes.
 
 | Provider | When | Status recorded |
 | --- | --- | --- |
+| `hedera-contract` | Operator, key and contract id present (**preferred**) | `confirmed` after `submitRoot` returns SUCCESS and `getRoot` reads the submitted root back |
+| `hedera-hcs` | Operator, key and topic present, no contract | `confirmed` after a receipt with a topic sequence number |
 | `local` | Hedera not configured | `local`; `tx_ref = local:<batch>:<root prefix>`; explicitly not on-chain |
-| `hedera-hcs` | Operator, key and topic present | `confirmed` after a receipt with a topic sequence number |
 
-A configured provider that fails to reach consensus **throws**, so no batch row
-is written for a transaction that did not complete. The old placeholder that
-recorded a `pending:` reference for an unsubmitted transaction has been removed:
-a reference without a receipt is not an anchor.
+A configured provider that fails **throws**, so no batch row is written for a
+transaction that did not complete. The old placeholder that recorded a
+`pending:` reference for an unsubmitted transaction has been removed: a
+reference without a receipt is not an anchor.
 
-Batches store `topic_id`, `sequence_number` and `consensus_timestamp`. The
-settings panel links each confirmed batch to HashScan.
+Contract batches store `contract_id`, `contract_batch_id`, `tx_ref` and
+`consensus_timestamp`; consensus batches store `topic_id`, `sequence_number` and
+`consensus_timestamp`. The settings panel links each confirmed batch to HashScan
+and prints the on-chain batch key the root is stored under.
 
 ## Independent verification
 
@@ -83,10 +90,11 @@ The integrity panel lets a person pick a commitment, see the proof path, and
 watch verification fail when a single character is altered. Failure is presented
 as a successful detection, not an error.
 
-A second, network-level check is possible without credentials: read the HCS
-message from a mirror node and compare the root. The certificate page does this
-on render; batch verification exposes the topic and sequence so a reader can do
-it manually.
+A second, network-level check re-reads the anchor itself: `getRoot(batchId)` for
+contract batches, the mirror-node message for consensus batches. The verify
+route returns this as `chain: { checked, matches, via, reason }`. It is
+credential-free from a reader's side too — see [docs/HEDERA.md](HEDERA.md) for
+the HashScan link and the `eth_call` form of the contract read.
 
 ## Certificate anchoring
 
@@ -112,9 +120,11 @@ which is what makes that acceptable.
 - Not a mainnet deployment; the repository ships no credentials and the default
   state is local.
 
-## Contract folder
+## Contract
 
-`contracts/EvidenceAnchor.sol` is retained as an alternative design (anchor a
-root in contract storage). It is unaudited, undeployed and **not used by the
-application**. Hedera HCS is the implemented path because the claim needs
-ordering and timestamping, not programmability.
+`contracts/EvidenceAnchor.sol` stores one root per batch id and is the preferred
+anchoring path. It is compiled by `pnpm contracts:build`, deployed by
+`pnpm contracts:deploy`, and called from `src/lib/hedera/contract.ts`. It is
+unaudited and has no upgrade proxy; a replacement is a new contract id. HCS
+remains the path for certificate hashes, where the claim is ordering and
+timestamping rather than addressable state.

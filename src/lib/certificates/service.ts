@@ -9,7 +9,7 @@
 
 import { randomUUID } from "node:crypto";
 import { env } from "@/lib/env";
-import { createCertificate } from "@/lib/db/queries";
+import { createCertificate, revokeCertificate as revokeCertificateRecord } from "@/lib/db/queries";
 import { getProfile } from "@/lib/db/queries";
 import { computeFingerprint } from "@/lib/services/ingest";
 import { buildMerkleTree, evidenceCommitment } from "@/lib/integrity/merkle";
@@ -230,8 +230,18 @@ export function verifyStoredCertificate(certificate: Certificate): CertificateVe
     hashValid,
     anchorStatus: certificate.anchorStatus,
     reason:
-      signatureValid && hashValid
-        ? "The signature matches the payload and the stored hash is consistent."
-        : "The certificate failed verification: the payload, signature or hash does not match.",
+      certificate.status === "revoked"
+        ? "This certificate has been revoked by its issuer."
+        : signatureValid && hashValid
+          ? "The signature matches the payload and the stored hash is consistent."
+          : "The certificate failed verification: the payload, signature or hash does not match.",
   };
+}
+
+export function revokeCertificate(
+  userId: string,
+  certificateId: string,
+  reason: string | null = null,
+): Certificate | null {
+  return revokeCertificateRecord(userId, certificateId, reason);
 }

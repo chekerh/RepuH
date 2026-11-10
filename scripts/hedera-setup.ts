@@ -35,9 +35,17 @@ async function main() {
     return;
   }
 
+  if (!status.contractId) {
+    console.log(
+      "[repuh] HEDERA_CONTRACT_ID is not set. Evidence batches will fall back to the topic below; run `pnpm contracts:deploy` to anchor them with the EvidenceAnchor contract.",
+    );
+  } else {
+    console.log(`[repuh] HEDERA_CONTRACT_ID is set: ${status.contractId}`);
+  }
+
   if (status.topicId) {
     console.log(`[repuh] HEDERA_TOPIC_ID is already set: ${status.topicId}`);
-    console.log("[repuh] messages will be submitted to that topic. No new topic was created.");
+    console.log("[repuh] certificate hashes will be submitted to that topic. No new topic was created.");
     return;
   }
 

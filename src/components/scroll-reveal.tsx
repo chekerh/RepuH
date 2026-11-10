@@ -25,11 +25,14 @@ export function Reveal({
 }) {
   const reduce = useReducedMotion();
   const variants: Variants = {
-    hidden: { opacity: 0, y: 14 },
+    // A short blur keeps the entrance from reading as a plain fade. It is one
+    // authored move per section, not a scatter of effects.
+    hidden: { opacity: 0, y: 16, filter: "blur(5px)" },
     show: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.55, ease, staggerChildren: stagger, delayChildren: 0.05 },
+      filter: "blur(0px)",
+      transition: { duration: 0.7, ease, staggerChildren: stagger, delayChildren: 0.05 },
     },
   };
 
@@ -59,8 +62,8 @@ export function RevealItem({
 }) {
   const reduce = useReducedMotion();
   const variants: Variants = {
-    hidden: { opacity: 0, y: 10 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease } },
+    hidden: { opacity: 0, y: 10, filter: "blur(4px)" },
+    show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6, ease } },
   };
 
   const MotionTag = motion[as as keyof typeof motion] as typeof motion.div;

@@ -77,7 +77,7 @@ export default function PrivacyPage() {
         <p>
           A public profile is a scoped projection built by a separate query. Private activity,
           private evidence, integration tokens, consent records, security history, sensitive project
-          identifiers and unauthorised source data are excluded at the query boundary — not hidden in
+          identifiers and unauthorised source data are excluded at the query boundary, not hidden in
           the browser. Private profiles do not resolve at a public address at all.
         </p>
 

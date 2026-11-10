@@ -55,7 +55,7 @@ export default function ContactPage() {
         <p>
           Export and deletion are self-service at{" "}
           <Link href="/settings#security">Settings → Security and data</Link>. If you cannot sign in,
-          note that recovery mail delivery is not configured in this deployment — that limitation is
+          note that recovery mail delivery is not configured in this deployment. That limitation is
           documented rather than hidden behind a spinner.
         </p>
       </article>

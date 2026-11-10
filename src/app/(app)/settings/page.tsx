@@ -12,7 +12,8 @@ import {
 } from "@/components/settings/controls";
 import { requireOnboarded } from "@/lib/auth/session";
 import { latestConsents, listAnchors } from "@/lib/db/queries";
-import { hederaReady, hederaStatus } from "@/lib/hedera/config";
+import { hederaStatus } from "@/lib/hedera/config";
+import { providerStatus } from "@/lib/blockchain";
 
 export const metadata: Metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -94,6 +95,14 @@ export default async function SettingsPage() {
           No mail provider is configured in this deployment. Accounts are marked verified on the
           first successful sign-in; the security documentation states this explicitly.
         </p>
+        <div className="mt-4">
+          <Link
+            href="/onboarding?repeat=1"
+            className="inline-flex items-center gap-1.5 rounded-sm border border-border-strong bg-surface px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-muted"
+          >
+            Repeat onboarding
+          </Link>
+        </div>
       </Section>
 
       <Section
@@ -197,9 +206,11 @@ export default async function SettingsPage() {
         description="Deterministic hashing and Merkle inclusion proofs. Off-chain evidence, minimal public commitments, Hedera consensus receipts when configured."
       >
         <AnchorControls
-          configured={hederaReady()}
+          configured={providerStatus().configured}
+          provider={providerStatus().provider}
           network={hederaStatus().network}
           topicId={hederaStatus().topicId}
+          contractId={hederaStatus().contractId}
           explorerBase={hederaStatus().explorerBase}
           anchors={anchors.map((anchor) => ({
             id: anchor.id,
@@ -213,6 +224,8 @@ export default async function SettingsPage() {
             topicId: anchor.topicId,
             sequenceNumber: anchor.sequenceNumber,
             consensusTimestamp: anchor.consensusTimestamp,
+            contractId: anchor.contractId,
+            contractBatchId: anchor.contractBatchId,
             commitments: anchor.commitments,
             createdAt: anchor.createdAt,
           }))}

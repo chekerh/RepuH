@@ -15,7 +15,9 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("flex flex-col gap-4 border-b border-border pb-6", className)}>
+    // The entrance runs on each route mount, so a navigation reads as a change
+    // of page rather than an instant swap.
+    <header className={cn("rise flex flex-col gap-4 border-b border-border pb-6", className)}>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
           <h1 className="display text-[clamp(2rem,4vw,2.75rem)]">{title}</h1>

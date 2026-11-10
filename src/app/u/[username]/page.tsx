@@ -118,6 +118,14 @@ export default async function PublicProfilePage({
               <p className="mt-3 max-w-[58ch] text-[0.9375rem] leading-relaxed text-muted">
                 {profile.headline ?? "No professional headline."}
               </p>
+              <p className="mt-3 text-sm">
+                <Link
+                  href={`/api/profile/public/${profile.username}/persona`}
+                  className="font-medium text-primary hover:underline"
+                >
+                  Download persona.md
+                </Link>
+              </p>
               {profile.bio ? (
                 <p className="mt-3 max-w-[62ch] text-[0.8125rem] leading-relaxed text-muted">{profile.bio}</p>
               ) : null}

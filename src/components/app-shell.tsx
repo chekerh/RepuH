@@ -1,14 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { applyTheme } from "@/components/theme-toggle";
 import {
   Activity,
   Award,
   Compass,
   Fingerprint,
+  Target,
+  Gauge,
   HelpCircle,
   LayoutDashboard,
+  LogOut,
+  MessageSquare,
   Settings,
   Trophy,
   User,
@@ -20,8 +26,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { cn, initials } from "@/lib/utils";
 
 const PRIMARY = [
+  { href: "/assistant", label: "Assistant", icon: MessageSquare },
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/fingerprint", label: "My Fingerprint", icon: Fingerprint },
+  { href: "/roles", label: "Role coverage", icon: Target },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/evidence", label: "Evidence", icon: Waypoints },
   { href: "/certificates", label: "Certificates", icon: Award },
@@ -30,13 +38,13 @@ const PRIMARY = [
 ];
 
 const MOBILE = [
+  { href: "/assistant", label: "Assistant", icon: MessageSquare },
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/fingerprint", label: "Fingerprint", icon: Fingerprint },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/evidence", label: "Evidence", icon: Waypoints },
   { href: "/certificates", label: "Certificates", icon: Award },
   { href: "/leaderboards", label: "Rankings", icon: Trophy },
-  { href: "/profile", label: "Profile", icon: User },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -47,14 +55,33 @@ function isActive(pathname: string, href: string) {
 export function AppShell({
   user,
   demo,
+  observing,
+  admin = false,
   children,
 }: {
   user: SessionUser;
   demo: boolean;
+  /** True only when a provider is actually connected; a new account has none. */
+  observing: boolean;
+  /** True only for emails on REPUH_ADMIN_EMAILS; hides the link for everyone else. */
+  admin?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  useEffect(() => {
+    const stored = (user as { preferences?: { theme?: string } }).preferences?.theme;
+    if (stored === "light" || stored === "dark" || stored === "system") {
+      applyTheme(stored);
+    }
+  }, [user]);
+  const router = useRouter();
   const profileHref = `/u/${user.profile.username}`;
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
@@ -126,6 +153,23 @@ export function AppShell({
                 Help
               </Link>
             </li>
+            {admin ? (
+              <li>
+                <Link
+                  href="/admin"
+                  aria-current={isActive(pathname, "/admin") ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-sm px-2.5 py-2 text-[0.8125rem] transition-colors",
+                    isActive(pathname, "/admin")
+                      ? "bg-surface-muted font-medium text-foreground"
+                      : "text-muted hover:bg-surface-muted hover:text-foreground",
+                  )}
+                >
+                  <Gauge size={16} strokeWidth={1.75} />
+                  Admin
+                </Link>
+              </li>
+            ) : null}
             <li>
               <Link
                 href="/settings"
@@ -173,7 +217,17 @@ export function AppShell({
                   ? "Selectively shared"
                   : "Private profile"}
             </span>
-            <ThemeToggle />
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="rounded-xs px-2 py-1 text-xs text-muted transition-colors hover:text-foreground"
+                aria-label="Sign out"
+              >
+                <LogOut size={13} />
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </aside>
@@ -188,11 +242,15 @@ export function AppShell({
               <span
                 className={cn(
                   "size-1.5 rounded-full",
-                  demo ? "bg-warning" : "bg-success",
+                  demo ? "bg-warning" : observing ? "bg-success" : "bg-muted",
                 )}
                 aria-hidden
               />
-              {demo ? "Development adapter — labelled demo data" : "Observation active"}
+              {demo
+                ? "Development adapter — labelled demo data"
+                : observing
+                  ? "Observation active"
+                  : "Not observing"}
             </span>
           </div>
           <div className="flex items-center gap-1.5">

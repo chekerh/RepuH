@@ -3,7 +3,8 @@
  *
  * What is submitted: a small JSON envelope containing a Merkle root and batch
  * metadata. HCS orders and timestamps it; the message becomes immutable once
- * consensus is reached.
+ * consensus is reached. This path anchors certificate hashes and remains the
+ * fallback for evidence batches when no EvidenceAnchor contract is configured.
  *
  * What is never submitted: names, usernames, emails, skills, estimates,
  * evidence payloads or project names. The envelope is the same information a
@@ -13,16 +14,10 @@
  * one message so a failed or partial submit cannot look like a valid anchor.
  */
 
-import {
-  AccountBalanceQuery,
-  AccountId,
-  Client,
-  TopicCreateTransaction,
-  TopicId,
-  TopicMessageSubmitTransaction,
-} from "@hashgraph/sdk";
+import { AccountBalanceQuery, AccountId, TopicCreateTransaction, TopicId, TopicMessageSubmitTransaction } from "@hashgraph/sdk";
 import { env } from "@/lib/env";
-import { hederaNetwork, hederaOperatorReady, hederaReady, operatorKey } from "@/lib/hedera/config";
+import { hederaNetwork, hederaOperatorReady, hederaReady } from "@/lib/hedera/config";
+import { hederaClient } from "@/lib/hedera/client";
 import { enforceMessageLimit, type AnchorEnvelope } from "@/lib/hedera/envelopes";
 
 export { buildAnchorEnvelope, HCS_MESSAGE_LIMIT, HCS_PROTOCOL } from "@/lib/hedera/envelopes";
@@ -33,24 +28,6 @@ export interface HcsReceipt {
   topicId: string;
   sequenceNumber: number;
   consensusTimestamp: string;
-}
-
-function client(): Client {
-  const network = hederaNetwork();
-  const instance =
-    network === "mainnet"
-      ? Client.forMainnet()
-      : network === "previewnet"
-        ? Client.forPreviewnet()
-        : Client.forTestnet();
-  instance.setRequestTimeout(20_000);
-  const key = operatorKey();
-  if (!key) {
-    instance.close();
-    throw new Error("Hedera operator key is missing or unparseable");
-  }
-  instance.setOperator(AccountId.fromString(env.hedera.operatorId), key);
-  return instance;
 }
 
 /**
@@ -69,7 +46,7 @@ export async function submitHcsMessage(envelope: object): Promise<HcsReceipt> {
   const message = JSON.stringify(envelope);
   enforceMessageLimit(message);
   const topicId = TopicId.fromString(env.hedera.topicId);
-  const instance = client();
+  const instance = hederaClient();
   try {
     const response = await new TopicMessageSubmitTransaction()
       .setTopicId(topicId)
@@ -98,7 +75,7 @@ export async function createAnchorTopic(memo = "RepuH evidence anchors v1") {
   if (!hederaOperatorReady()) {
     throw new Error("Hedera operator credentials are required to create a topic");
   }
-  const instance = client();
+  const instance = hederaClient();
   try {
     const response = await new TopicCreateTransaction().setTopicMemo(memo).execute(instance);
     const receipt = await response.getReceipt(instance);
@@ -115,7 +92,7 @@ export async function createAnchorTopic(memo = "RepuH evidence anchors v1") {
 /** Operator balance, used by the setup script as a preflight check. */
 export async function operatorBalanceHbar(): Promise<string> {
   if (!hederaOperatorReady()) throw new Error("Hedera operator credentials are not configured");
-  const instance = client();
+  const instance = hederaClient();
   try {
     const balance = await new AccountBalanceQuery()
       .setAccountId(AccountId.fromString(env.hedera.operatorId))

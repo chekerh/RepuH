@@ -150,6 +150,8 @@ CREATE TABLE IF NOT EXISTS blockchain_anchors (
   topic_id TEXT,
   sequence_number INTEGER,
   consensus_timestamp TEXT,
+  contract_id TEXT,
+  contract_batch_id TEXT,
   commitments TEXT NOT NULL DEFAULT '[]',
   created_at TEXT NOT NULL,
   UNIQUE(user_id, batch_id)
@@ -165,6 +167,8 @@ CREATE TABLE IF NOT EXISTS certificates (
   signature TEXT NOT NULL,
   key_id TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'active',
+  revoked_at TEXT,
+  revocation_reason TEXT,
   anchor_network TEXT,
   anchor_topic_id TEXT,
   anchor_sequence INTEGER,
